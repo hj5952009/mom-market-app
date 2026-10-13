@@ -1,0 +1,91 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install npm packages
+        run: npm ci
+
+      - name: Unit tests (text and rule modules)
+        run: npm test
+
+      - name: Read app version
+        id: ver
+        run: |
+          V=$(grep -m1 'versionName' android/app/build.gradle | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "tag=v$V-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp build number into the web app (used by "새 버전 확인")
+        run: |
+          printf '{"version":"%s","build":%s,"commit":"%s"}\n' "${{ steps.ver.outputs.version }}" "${{ github.run_number }}" "${GITHUB_SHA::7}" > www/build.json
+          cat www/build.json
+
+      - name: Capacitor sync
+        run: npx cap sync android
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleRelease
+
+      - name: Collect APK
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -n1)
+          echo "Built: $APK"
+          cp "$APK" market-compass.apk
+          ls -la market-compass.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-compass-${{ steps.ver.outputs.tag }}
+          path: market-compass.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: 시장 나침반 ${{ steps.ver.outputs.tag }}
+          body: |
+            엄마의 시장 나침반 ${{ steps.ver.outputs.version }} (빌드 ${{ github.run_number }})
+            설치: 아래 market-compass.apk를 폰에서 내려받아 열어 주세요. (가족용 앱 — 다른 사람에게 나눠 주지 말아 주세요.)
+          files: market-compass.apk
+          make_latest: true

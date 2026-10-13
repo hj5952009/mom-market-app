@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">시장 나침반</string>
+    <string name="title_activity_main">시장 나침반</string>
+    <string name="package_name">com.hj5952009.marketcompass</string>
+    <string name="custom_url_scheme">com.hj5952009.marketcompass</string>
+</resources>

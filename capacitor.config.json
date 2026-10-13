@@ -1,0 +1,19 @@
+{
+  "appId": "com.hj5952009.marketcompass",
+  "appName": "시장 나침반",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_compass",
+      "iconColor": "#7A4E08"
+    }
+  }
+}

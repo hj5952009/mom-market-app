@@ -1,0 +1,25 @@
+{
+  "name": "mom-market-compass",
+  "version": "1.0.0",
+  "private": true,
+  "description": "엄마의 시장 나침반 — 코스피 다음 거래일 범위 참고 앱 (가족용)",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "node test/run-unit.js",
+    "screenshots": "node test/screenshots.js",
+    "sync": "npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/share": "8.0.2",
+    "@capacitor/text-zoom": "8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2",
+    "playwright-core": "1.56.1"
+  }
+}
