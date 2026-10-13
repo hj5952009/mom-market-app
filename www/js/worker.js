@@ -1,6 +1,6 @@
-/* 계산 전용 Web Worker (ux1 4-2: 계산 중에도 화면이 멈추지 않게) */
+/* 계산 전용 Web Worker (계산 중에도 화면이 멈추지 않게) */
 /* global importScripts, Compute */
-importScripts('util.js', 'model.js', 'overnight.js', 'context.js', 'compute.js');
+importScripts('util.js', 'model.js', 'compute.js');
 self.onmessage = function (e) {
   var t0 = Date.now();
   try {

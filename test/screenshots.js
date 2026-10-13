@@ -1,5 +1,7 @@
-/* 데모 모드 화면을 360×800에서 찍는다 — node test/screenshots.js
- * 크롬: PLAYWRIGHT_BROWSERS_PATH(기본 /opt/pw-browsers)의 chromium을 직접 지정. 콘솔 오류가 하나라도 있으면 실패. */
+/* 데모 모드 화면을 360×800에서 찍는다 — node test/screenshots.js [이름 정규식]
+ * 탭 3개 × 글씨 1.0/1.3 × 라이트/다크(전체 페이지) + 간밤 모드·첫 실행 안내·툴팁 등.
+ * 검사: 콘솔 오류·경고 0, 가로 넘침 0, 화면 밖으로 나간 요소 0, 차트 글자끼리 겹침 0, 차트 글자가 화면 밖 0.
+ * 크롬: PLAYWRIGHT_BROWSERS_PATH(기본 /opt/pw-browsers)의 chromium을 직접 지정. */
 'use strict';
 const http = require('http');
 const fs = require('fs');
@@ -17,33 +19,25 @@ function findChrome() {
   throw new Error('chromium not found under ' + base);
 }
 
-const SHOTS = [
-  // [file, query, opts]
-  ['01_today', 'tab=today'], ['01_today_x1.3', 'tab=today&scale=1.3'], ['01_today_x1.56', 'tab=today&scale=1.3&big=1'],
-  ['02_today_morning', 'tab=today&scenario=morning'], ['02_today_morning_x1.3', 'tab=today&scenario=morning&scale=1.3'],
-  ['03_holdings', 'tab=holdings'], ['03_holdings_x1.3', 'tab=holdings&scale=1.3'],
-  ['04_record', 'tab=record'], ['04_record_x1.3', 'tab=record&scale=1.3'],
-  ['05_more', 'tab=more'], ['05_more_x1.3', 'tab=more&scale=1.3'],
-  ['06_range_detail', 'page=range'], ['06_range_detail_x1.3', 'page=range&scale=1.3'],
-  ['07_holding_detail', 'tab=holdings&page=holding&id=0'], ['07_holding_detail_x1.3', 'tab=holdings&page=holding&id=2&scale=1.3'],
-  ['08_trust', 'tab=record&page=trust'], ['09_misses', 'tab=record&page=misses'],
-  ['10_settings', 'tab=more&page=settings'], ['10_settings_x1.3', 'tab=more&page=settings&scale=1.3&big=1'],
-  ['11_glossary', 'tab=more&page=glossary'], ['12_term_sheet', 'tab=today&sheet=term&id=vix', { viewportOnly: true }],
-  ['13_add_sheet', 'tab=holdings&sheet=add', { viewportOnly: true }], ['13_add_sheet_x1.3', 'tab=holdings&sheet=add&scale=1.3', { viewportOnly: true }],
-  ['14_time_sheet', 'tab=more&page=settings&sheet=time', { viewportOnly: true }],
-  ['15_worry', 'tab=holdings&page=worry'], ['16_tip', 'tab=more&page=tip&id=tip_after_big_drop'],
-  ['17_onboarding_1', 'ob=1&obstep=0', { viewportOnly: true }], ['17_onboarding_2', 'ob=1&obstep=1', { viewportOnly: true }],
-  ['17_onboarding_3', 'ob=1&obstep=2', { viewportOnly: true }], ['17_onboarding_3_x1.3', 'ob=1&obstep=2&scale=1.3', { viewportOnly: true }],
-  ['17_onboarding_3_x1.56', 'ob=1&obstep=2&scale=1.3&big=1', { viewportOnly: true }],
-  ['18_loading_first', 'tab=today&loading=1', { viewportOnly: true }],
-  ['19_offline_nocache', 'tab=today&error=offline&nocache=1', { viewportOnly: true }],
-  ['20_offline_cached', 'tab=today&error=offline', { viewportOnly: true }],
-  ['21_today_expired', 'tab=today&now=2026-10-16T10:00:00%2B09:00'],
-  ['22_today_weekend', 'tab=today&now=2026-10-17T10:00:00%2B09:00', { viewportOnly: true }],
-  ['24_today_us_missing', 'tab=today&scenario=usmissing'], ['24_today_us_missing_x1.3', 'tab=today&scenario=usmissing&scale=1.3', { viewportOnly: true }],
-  ['25_today_first_screen', 'tab=today&scenario=morning', { viewportOnly: true }], ['25_today_first_screen_x1.3', 'tab=today&scenario=morning&scale=1.3', { viewportOnly: true }],
-  ['23_today_market_open', 'tab=today&scenario=morning&now=2026-10-14T10:30:00%2B09:00', { viewportOnly: true }]
-];
+const SHOTS = [];
+const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info']];
+for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3']) {
+  SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
+}
+SHOTS.push(['02_record_period1m_light_x1.0', 'tab=record&period=1m', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['02_record_periodall_dark_x1.3', 'tab=record&period=all&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['04_predict_overnight_light_x1.0', 'tab=predict&scenario=morning&scale=1.0', { theme: 'light' }]);
+SHOTS.push(['04_predict_overnight_light_x1.3', 'tab=predict&scenario=morning&scale=1.3', { theme: 'light' }]);
+SHOTS.push(['04_predict_overnight_dark_x1.0', 'tab=predict&scenario=morning&scale=1.0', { theme: 'dark' }]);
+SHOTS.push(['05_predict_usmissing_light_x1.0', 'tab=predict&scenario=usmissing', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['06_predict_past_light_x1.0', 'tab=predict&now=2026-10-14T16:10:00%2B09:00', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['07_notice_light_x1.0', 'tab=predict&notice=1', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['07_notice_dark_x1.3', 'tab=predict&notice=1&scale=1.3', { theme: 'dark', viewportOnly: true }]);
+SHOTS.push(['08_tooltip_fan_light_x1.0', 'tab=predict', { theme: 'light', viewportOnly: true, tap: ['#c-fan', 0.95, 0.5] }]);
+SHOTS.push(['08_tooltip_bands_dark_x1.3', 'tab=record&scale=1.3', { theme: 'dark', viewportOnly: true, tap: ['#c-bands', 0.55, 0.4] }]);
+SHOTS.push(['08_tooltip_density_light_x1.3', 'tab=predict&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-dens', 0.7, 0.5] }]);
+SHOTS.push(['08_tooltip_ladder_dark_x1.0', 'tab=predict', { theme: 'dark', viewportOnly: true, tap: ['#c-ladder', 0.5, 0.6] }]);
+SHOTS.push(['08_tooltip_fanhist_light_x1.3', 'tab=predict&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-fan', 0.3, 0.5] }]);
 
 (async () => {
   const server = http.createServer((req, res) => {
@@ -57,29 +51,48 @@ const SHOTS = [
   const port = server.address().port;
   const browser = await chromium.launch({ executablePath: findChrome(), args: ['--no-sandbox', '--font-render-hinting=none'] });
   const only = process.argv[2] ? new RegExp(process.argv[2]) : null;
+  if (!only) for (const f of fs.readdirSync(OUT)) if (f.endsWith('.png')) fs.unlinkSync(path.join(OUT, f));
   const problems = [];
   for (const [name, q, opts = {}] of SHOTS) {
     if (only && !only.test(name)) continue;
-    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: 1, locale: 'ko-KR', timezoneId: 'Asia/Seoul' });
+    const ctx = await browser.newContext({ viewport: { width: 360, height: 800 }, deviceScaleFactor: +(process.env.DSF || 1), locale: 'ko-KR', timezoneId: 'Asia/Seoul', colorScheme: opts.theme || 'light', hasTouch: true });
     const page = await ctx.newPage();
     const errs = [];
     page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });
     page.on('pageerror', e => errs.push('pageerror: ' + e.message));
     page.on('requestfailed', r => errs.push('requestfailed: ' + r.url()));
-    const shot = opts.viewportOnly ? '' : '&shot=1';
-    await page.goto(`http://127.0.0.1:${port}/index.html?demo=1&${q}${shot}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(400);
-    // 가로 넘침·잘림 검사
+    await page.goto(`http://127.0.0.1:${port}/index.html?demo=1&${q}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(300);
+    if (opts.tap) {
+      const [sel, fx, fy] = opts.tap;
+      const el = await page.$(sel);
+      await el.evaluate(e => e.scrollIntoView({ block: 'center' }));
+      const b = await el.boundingBox();
+      await page.touchscreen.tap(b.x + b.width * fx, b.y + b.height * fy);
+      await page.waitForTimeout(150);
+    }
+    // 전체 페이지 캡처에서는 고정된 아래 탭이 중간에 찍히므로 문서 맨 아래로 옮겨 찍는다(앱 코드는 그대로)
+    if (!opts.viewportOnly) await page.addStyleTag({ content: 'body{position:relative}.tabs{position:absolute!important}' });
     const lay = await page.evaluate(() => {
       const W = document.documentElement.clientWidth, bad = [];
-      document.querySelectorAll('#app *, #onboarding *, #sheet-root *').forEach(el => {
+      document.querySelectorAll('body *').forEach(el => {
+        if (el.closest('[hidden]') || el.closest('svg') && el.tagName !== 'svg') return;
         const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
-        const cs = getComputedStyle(el); if (cs.position === 'fixed') return;
-        if (r.right > W + 1 || r.left < -1) bad.push((el.className || el.tagName) + ' ' + Math.round(r.left) + '..' + Math.round(r.right) + ' ' + (el.textContent || '').trim().slice(0, 30));
-        if (el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== 'auto' && cs.overflowX !== 'scroll' && cs.whiteSpace !== 'nowrap' && el.children.length === 0)
-          bad.push('clip ' + (el.className || el.tagName) + ' ' + (el.textContent || '').trim().slice(0, 30));
+        if (r.right > W + 0.5 || r.left < -0.5) bad.push('out ' + (el.id || el.className || el.tagName) + ' ' + Math.round(r.left) + '..' + Math.round(r.right) + ' ' + (el.textContent || '').trim().slice(0, 30));
+        const cs = getComputedStyle(el);
+        if (el.children.length === 0 && el.scrollWidth > el.clientWidth + 1 && cs.overflowX !== 'visible') bad.push('clip ' + (el.className || el.tagName) + ' ' + (el.textContent || '').trim().slice(0, 30));
       });
-      return { scrollW: document.documentElement.scrollWidth, W, bad: bad.slice(0, 12) };
+      // 차트 글자: 화면 밖, 서로 겹침
+      document.querySelectorAll('.chart svg').forEach(svg => {
+        const ts = [...svg.querySelectorAll('text')].filter(t => t.textContent.trim()).map(t => ({ t: t.textContent, r: t.getBoundingClientRect() }));
+        ts.forEach(a => { if (a.r.right > W + 0.5 || a.r.left < -0.5) bad.push('svg text off-screen "' + a.t + '" ' + Math.round(a.r.left) + '..' + Math.round(a.r.right)); });
+        for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) {
+          const a = ts[i].r, b = ts[j].r;
+          const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ox > 1 && oy > 2) bad.push(svg.parentElement.id + ' text overlap "' + ts[i].t + '" × "' + ts[j].t + '"');
+        }
+      });
+      return { scrollW: document.documentElement.scrollWidth, W, bad: bad.slice(0, 15) };
     });
     if (lay.scrollW > lay.W + 1) problems.push(name + ': horizontal scroll ' + lay.scrollW);
     if (lay.bad.length) problems.push(name + ': ' + lay.bad.join(' | '));
@@ -91,5 +104,5 @@ const SHOTS = [
   await browser.close(); server.close();
   console.log('\nscreenshots →', OUT);
   if (problems.length) { console.log('PROBLEMS:\n' + problems.join('\n')); process.exit(1); }
-  console.log('no console errors, no horizontal overflow');
+  console.log('no console errors, no horizontal overflow, no clipped or overlapping chart labels');
 })().catch(e => { console.error(e); process.exit(2); });

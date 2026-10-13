@@ -1,0 +1,589 @@
+/* 차트: 의존성 없는 순수 SVG. 컨테이너 폭(px)에 맞춰 다시 그리고, 글씨는 앱 글씨 배율을 따른다.
+ * 공통 규칙(dataviz): 선 2px, 격자·축은 1px 연한 실선, 막대 ≤24px·데이터 끝 4px 둥글게, 점 ≥8px + 표면색 2px 테두리,
+ * 글자는 잉크색(계열 색 금지), 2개 이상 계열은 범례, 숫자는 꼭 필요한 곳에만 직접 라벨.
+ * 모든 차트: 손가락으로 누르거나 끌면 툴팁(선·면 차트는 세로 보조선이 가장 가까운 날짜에 붙음), 키보드 ←/→도 같은 내용. */
+(function (root) {
+  'use strict';
+  var U = root.MCUtil;
+  var esc = U.esc;
+
+  // ------------------------------------------------------------------ 도구
+  function lin(d0, d1, r0, r1) { var k = (r1 - r0) / ((d1 - d0) || 1); var f = function (v) { return r0 + (v - d0) * k; }; f.inv = function (p) { return d0 + (p - r0) / k; }; return f; }
+  function n1(v) { return Math.round(v * 10) / 10; }
+  function niceTicks(lo, hi, count) {
+    var span = hi - lo, raw = span / Math.max(1, count), mag = Math.pow(10, Math.floor(Math.log10(raw))), st = mag;
+    [1, 2, 2.5, 5, 10].some(function (m) { st = m * mag; return st >= raw; });
+    var out = [], v = Math.ceil(lo / st - 1e-9) * st;
+    for (; v <= hi + 1e-9; v += st) out.push(Math.round(v * 1e6) / 1e6);
+    return out;
+  }
+  // 글자 폭 어림 (배치 판단용)
+  function tw(s, F, bold) {
+    var w = 0; s = String(s);
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i), ch = s[i];
+      if (c >= 0x1100) w += 0.98;
+      else if (/[0-9]/.test(ch)) w += 0.58;
+      else if (/[,.:]/.test(ch)) w += 0.28;
+      else if (ch === ' ') w += 0.28;
+      else if (ch === '%') w += 0.86;
+      else if (/[A-Z]/.test(ch)) w += 0.68;
+      else if (/[()]/.test(ch)) w += 0.34;
+      else w += 0.56;
+    }
+    return w * F * (bold ? 1.06 : 1);
+  }
+  function T(x, y, s, F, cls, anchor, extra) {
+    return '<text x="' + n1(x) + '" y="' + n1(y) + '" font-size="' + n1(F) + '" class="' + (cls || 'c-txt') + '"' +
+      (anchor ? ' text-anchor="' + anchor + '"' : '') + (extra || '') + '>' + esc(s) + '</text>';
+  }
+  function L(x1, y1, x2, y2, cls) { return '<line x1="' + n1(x1) + '" y1="' + n1(y1) + '" x2="' + n1(x2) + '" y2="' + n1(y2) + '" class="' + cls + '"/>'; }
+  function C(x, y, r, cls) { return '<circle cx="' + n1(x) + '" cy="' + n1(y) + '" r="' + n1(r) + '" class="' + cls + '"/>'; }
+  function P(d, cls) { return '<path d="' + d + '" class="' + cls + '"/>'; }
+  // 떠 있는 범위 막대(양 끝이 모두 데이터) — 양 끝 둥글게
+  function rangeBar(x0, x1, y, h, cls) {
+    var w = Math.max(1, x1 - x0), r = Math.min(4, h / 2, w / 2);
+    return '<rect x="' + n1(x0) + '" y="' + n1(y) + '" width="' + n1(w) + '" height="' + n1(h) + '" rx="' + n1(r) + '" class="' + cls + '"/>';
+  }
+  // 기준선에서 자라는 막대 — 데이터 끝만 둥글게
+  function hBar(xb, xv, y, h, cls) {
+    var w = Math.abs(xv - xb); if (w < 0.5) return '';
+    var r = Math.min(4, h / 2, w), d;
+    if (xv >= xb) d = 'M' + n1(xb) + ',' + n1(y) + 'H' + n1(xv - r) + 'Q' + n1(xv) + ',' + n1(y) + ' ' + n1(xv) + ',' + n1(y + r) + 'V' + n1(y + h - r) + 'Q' + n1(xv) + ',' + n1(y + h) + ' ' + n1(xv - r) + ',' + n1(y + h) + 'H' + n1(xb) + 'Z';
+    else d = 'M' + n1(xb) + ',' + n1(y) + 'H' + n1(xv + r) + 'Q' + n1(xv) + ',' + n1(y) + ' ' + n1(xv) + ',' + n1(y + r) + 'V' + n1(y + h - r) + 'Q' + n1(xv) + ',' + n1(y + h) + ' ' + n1(xv + r) + ',' + n1(y + h) + 'H' + n1(xb) + 'Z';
+    return P(d, cls);
+  }
+  function poly(pts) { return pts.map(function (p, i) { return (i ? 'L' : 'M') + n1(p[0]) + ',' + n1(p[1]); }).join(''); }
+  // 겹치는 라벨을 세로로 벌림 (위→아래 정렬된 [{y}]), 범위 [lo, hi]
+  function spread(items, gap, lo, hi) {
+    items.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < items.length; i++) if (items[i].y - items[i - 1].y < gap) items[i].y = items[i - 1].y + gap;
+    var over = items.length ? items[items.length - 1].y - hi : 0;
+    if (over > 0) for (var j = items.length - 1; j >= 0; j--) { items[j].y -= over; if (j && items[j].y - items[j - 1].y >= gap) break; over = j ? gap - (items[j].y - items[j - 1].y) : 0; if (over <= 0) break; }
+    if (items.length && items[0].y < lo) { var sh = lo - items[0].y; items.forEach(function (it) { it.y += sh; }); }
+    return items;
+  }
+  function fmtP(v) { return U.fmtInt(v); }
+  // 가격 x축 눈금: 라벨이 겹치지 않으면서 3개 이상 보이게
+  function priceTicks(lo, hi, x, x0, x1, F) {
+    var best = [], lw = tw('0,000', F) * 1.5;
+    for (var cnt = 3; cnt <= 8; cnt++) {
+      var tk = niceTicks(lo, hi, cnt).filter(function (t) { return x(t) > x0 + lw / 2 && x(t) < x1 - lw / 2; });
+      if (tk.length >= 2 && x(tk[1]) - x(tk[0]) >= lw) best = tk;
+      if (best.length >= 3) break;
+    }
+    return best;
+  }
+  function rangeTxt(a, b) { return U.fmt10(a) + '~' + U.fmt10(b); }
+  // 날짜 눈금: 라벨 폭이 겹치지 않게 고른다
+  function dateTicks(dates, xOf, F, mode) {
+    var out = [], lab = function (d) { return mode === 'ym' ? U.fmtYM(d) : mode === 'm' ? (+d.slice(5, 7)) + '월' : U.fmtSlash(d); };
+    var push = function (i) {
+      var x = xOf(i), s = lab(dates[i]), wl = tw(s, F), prev = out[out.length - 1];
+      if (!prev || x - prev.x >= (wl + prev.w) / 2 + F * 1.6) out.push({ x: x, s: s, w: wl });
+    };
+    if (mode === 'ym' || mode === 'm') {
+      for (var i = 1; i < dates.length; i++) if (dates[i].slice(0, 7) !== dates[i - 1].slice(0, 7)) push(i);
+    } else {
+      var n = dates.length, k = Math.max(1, Math.ceil(n / 4));
+      for (var j = 0; j < n; j += k) push(j);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ 바탕 (그리기·툴팁·키보드)
+  var mounted = [];
+  function fontPx() { var fs = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; return 14 * fs / 16; }
+  function mount(el, label, build) {
+    el._build = build; el._label = label;
+    if (mounted.indexOf(el) < 0) mounted.push(el);
+    draw(el);
+    if (!el._wired) wire(el);
+  }
+  function draw(el) {
+    var w = Math.floor(el.clientWidth); if (!w) return;
+    var F = fontPx(), c = el._build(w, F);
+    el._c = c; el._w = w; el._idx = -1;
+    el.setAttribute('tabindex', '0'); el.setAttribute('role', 'img'); el.setAttribute('aria-label', el._label);
+    el.innerHTML = '<svg width="' + w + '" height="' + Math.ceil(c.h) + '" viewBox="0 0 ' + w + ' ' + Math.ceil(c.h) + '" aria-hidden="true">' + c.svg + '<g class="hov"></g></svg><div class="tip" hidden></div>';
+  }
+  function hide(el) {
+    var g = el.querySelector('.hov'), t = el.querySelector('.tip');
+    if (g) g.innerHTML = ''; if (t) t.hidden = true;
+  }
+  function show(el, info) {
+    var g = el.querySelector('.hov'), tip = el.querySelector('.tip');
+    if (!info) { hide(el); return; }
+    var h = el._c.h, s = '';
+    if (info.band) s += '<rect x="' + n1(info.band.x) + '" y="' + n1(info.band.y) + '" width="' + n1(info.band.w) + '" height="' + n1(info.band.h) + '" rx="6"/>';
+    if (info.cx != null) s += L(info.cx, info.cy0 != null ? info.cy0 : 0, info.cx, info.cy1 != null ? info.cy1 : h, '');
+    (info.dots || []).forEach(function (d) { s += C(d.x, d.y, d.r || 5, d.cls || 'c-dot'); });
+    g.innerHTML = s;
+    // 내용은 textContent로만 (라벨은 데이터)
+    tip.textContent = '';
+    if (info.title) { var t0 = document.createElement('div'); t0.className = 'tt'; t0.textContent = info.title; tip.appendChild(t0); }
+    (info.rows || []).forEach(function (r) {
+      var row = document.createElement('div'); row.className = 'tr';
+      var k = document.createElement('i'); k.className = 'k ' + (r.k ? '' : 'none'); if (r.k) k.style.background = 'var(' + r.k + ')';
+      var b = document.createElement('b'); b.textContent = r.value;
+      var sp = document.createElement('span'); sp.textContent = r.label;
+      row.appendChild(k); row.appendChild(b); row.appendChild(sp); tip.appendChild(row);
+    });
+    tip.hidden = false;
+    var tw0 = tip.offsetWidth, th = tip.offsetHeight, W = el._w, left, top;
+    if (info.cx != null) {
+      // 세로 보조선 차트: 툴팁을 보조선 옆(빈 쪽)에, 차트 위쪽에 붙여서 가리키는 점을 가리지 않게
+      var cx = info.cx, gap = 12;
+      left = cx > W / 2 ? cx - tw0 - gap : cx + gap;
+      if (left < 0 || left + tw0 > W) left = Math.max(0, Math.min(W - tw0, cx - tw0 / 2));
+      top = 0;
+      var dy = (info.dots && info.dots[0]) ? info.dots[0].y : null;
+      if (dy != null && left <= cx && left + tw0 >= cx && dy < th + 8) top = dy + 14;   // 가운데로 왔을 때 점과 겹치지 않게
+    } else {
+      var ax = info.ax != null ? info.ax : W / 2, ay = info.ay != null ? info.ay : 0;
+      left = Math.max(0, Math.min(W - tw0, ax - tw0 / 2));
+      top = ay - th - 10;
+      if (top < -8) top = ay + (info.band ? info.band.h : 0) + 8;
+    }
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function wire(el) {
+    el._wired = true;
+    var at = function (e) {
+      var r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      if (!el._c || x < 0 || x > r.width) return;
+      show(el, el._c.probe(x, y));
+    };
+    el.addEventListener('pointerdown', function (e) { at(e); });
+    el.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' || e.buttons) at(e); });
+    el.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') hide(el); });
+    el.addEventListener('keydown', function (e) {
+      var st = el._c && el._c.stops; if (!st || !st.length) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') el._idx = Math.min(st.length - 1, el._idx + 1);
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') el._idx = el._idx < 0 ? st.length - 1 : Math.max(0, el._idx - 1);
+      else if (e.key === 'Escape') { hide(el); el._idx = -1; return; }
+      else return;
+      e.preventDefault();
+      show(el, el._c.probe(st[el._idx][0], st[el._idx][1]));
+    });
+    el.addEventListener('blur', function () { hide(el); el._idx = -1; });
+  }
+  document.addEventListener('pointerdown', function (e) {
+    mounted.forEach(function (el) { if (!el.contains(e.target)) hide(el); });
+  });
+  var rt = null;
+  function redrawAll() {
+    mounted = mounted.filter(function (el) { return document.body.contains(el); });
+    mounted.forEach(function (el) { if (el.clientWidth !== el._w) draw(el); });
+  }
+  root.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+  function reset() { mounted = []; }
+
+  // ================================================================== 예측 탭
+  /* 팬 차트: 최근 30거래일 종가 + 다음 거래일 예측 부채꼴(50/80/95%) + 중심값.
+   * d: {hist:[{date,close}], base, center, ranges, target} */
+  function fan(el, d) {
+    mount(el, '최근 30거래일 코스피 종가와 ' + U.fmtDateLong(d.target) + ' 예측 범위', function (w, F) {
+      var hist = d.hist, n = hist.length, R = d.ranges;
+      var h = Math.round(F * 17), top = F * 0.8, bot = h - F * 2;
+      var vals = hist.map(function (r) { return r.close; }).concat([R['0.95'][0], R['0.95'][1]]);
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pad = (hi - lo) * 0.06;
+      var ticks = niceTicks(lo - pad, hi + pad, 4);
+      var y0 = Math.min(lo - pad, ticks[0]), y1 = Math.max(hi + pad, ticks[ticks.length - 1]);
+      var y = lin(y0, y1, bot, top);
+      var left = tw(fmtP(ticks[ticks.length - 1]), F) + 8, right = tw('0,000', F, true) + 10;
+      var xT = w - right, xH = left + (xT - left) * 0.70;
+      var x = function (i) { return left + 4 + (xH - left - 4) * i / (n - 1); };
+      var s = '<rect x="' + n1((xH + xT) / 2 - 2) + '" y="' + n1(top - 4) + '" width="' + n1(w - (xH + xT) / 2 + 2) + '" height="' + n1(bot - top + 4) + '" class="c-shade"/>';
+      ticks.forEach(function (t) {
+        if (y(t) < top - 1 || y(t) > bot + 1) return;
+        s += L(left, y(t), xT, y(t), 'c-grid') + T(left - 6, y(t) + F * 0.35, fmtP(t), F, 'c-txt num', 'end');
+      });
+      s += L(left, bot, xT, bot, 'c-axis');
+      var bx = x(n - 1), by = y(d.base);
+      [['0.95', 'b4'], ['0.8', 'b2'], ['0.5', 'b1']].forEach(function (b) {
+        s += P(poly([[bx, by], [xT, y(R[b[0]][1])], [xT, y(R[b[0]][0])]]) + 'Z', b[1]);
+      });
+      s += P(poly(hist.map(function (r, i) { return [x(i), y(r.close)]; })), 'c-line');
+      s += L(bx, by, xT, y(d.center), 'c-proj');
+      s += C(bx, by, 4.5, 'c-dot') + C(xT, y(d.center), 5, 'c-dot');
+      // 끝 라벨: 95% 위·아래, 중심
+      var labs = spread([
+        { y: y(R['0.95'][1]) + F * 0.35, s: U.fmt10(R['0.95'][1]), c: 'c-lab num' },
+        { y: y(d.center) + F * 0.35, s: U.fmt10(d.center), c: 'c-strong num' },
+        { y: y(R['0.95'][0]) + F * 0.35, s: U.fmt10(R['0.95'][0]), c: 'c-lab num' }
+      ], F * 1.1, top + F * 0.4, bot);
+      labs.forEach(function (l) { s += T(xT + 6, l.y, l.s, F, l.c, 'start'); });
+      // x 눈금: 처음·가운데·마지막 날 + 예측일
+      var ty = h - F * 0.45;
+      [0, Math.round((n - 1) / 2), n - 1].forEach(function (i, k) {
+        s += T(x(i), ty, U.fmtSlash(hist[i].date), F, 'c-txt', k === 0 ? 'start' : 'middle');
+      });
+      s += T(xT, ty, U.fmtSlash(d.target), F, 'c-strong', 'middle');
+      var mid = (xH + xT) / 2;
+      return {
+        h: h, svg: s,
+        stops: hist.map(function (r, i) { return [x(i), 0]; }).concat([[xT, 0]]),
+        probe: function (px) {
+          if (px >= mid) {
+            return {
+              cx: xT, cy0: top - 4, cy1: bot, dots: [{ x: xT, y: y(d.center) }], ax: Math.min(xT, w - 60), ay: y(R['0.95'][1]),
+              title: U.fmtDateLong(d.target) + ' 예상',
+              rows: [{ label: '중심', value: U.fmt10(d.center) }, { k: '--band-1', label: '50%', value: rangeTxt(R['0.5'][0], R['0.5'][1]) },
+                { k: '--band-2', label: '80%', value: rangeTxt(R['0.8'][0], R['0.8'][1]) }, { k: '--band-4', label: '95%', value: rangeTxt(R['0.95'][0], R['0.95'][1]) }]
+            };
+          }
+          var i = Math.max(0, Math.min(n - 1, Math.round((px - left - 4) / (xH - left - 4) * (n - 1))));
+          var r = hist[i], prev = i > 0 ? hist[i - 1].close : null;
+          return {
+            cx: x(i), cy0: top - 4, cy1: bot, dots: [{ x: x(i), y: y(r.close), r: 4.5 }], ax: x(i), ay: Math.min(y(r.close), top + F * 3),
+            title: U.fmtDateLong(r.date),
+            rows: [{ k: '--ink', label: '종가', value: U.fmtInt(r.close) }].concat(prev ? [{ label: '전날 대비', value: U.signPct(U.pctOf(r.close, prev)) }] : [])
+          };
+        }
+      };
+    });
+  }
+
+  /* 확률 분포 곡선. d: {dens, base, center, baseWord} */
+  function density(el, d) {
+    mount(el, '내일 종가의 확률 분포. 기준 종가보다 위는 상승, 아래는 하락', function (w, F) {
+      var D = d.dens, h = Math.round(F * 14), top = F * 2.2, bot = h - F * 2;
+      var xl = Math.min(D.quantile(0.002), d.base), xr = Math.max(D.quantile(0.998), d.base);
+      var padX = 6, x = lin(xl, xr, padX, w - padX);
+      var pts = D.sample(xl, xr, 220), ymax = 0;
+      pts.forEach(function (p) { ymax = Math.max(ymax, p.y); });
+      var y = lin(0, ymax * 1.05, bot, top);
+      var dn = pts.filter(function (p) { return p.x <= d.base; }), upP = pts.filter(function (p) { return p.x >= d.base; });
+      var atB = { x: d.base, y: D.pdf(d.base) };
+      dn.push(atB); upP.unshift(atB);
+      var area = function (arr) { return poly(arr.map(function (p) { return [x(p.x), y(p.y)]; })) + 'L' + n1(x(arr[arr.length - 1].x)) + ',' + n1(bot) + 'L' + n1(x(arr[0].x)) + ',' + n1(bot) + 'Z'; };
+      var curve = function (arr) { return poly(arr.map(function (p) { return [x(p.x), y(p.y)]; })); };
+      var s = '';
+      var ticks = priceTicks(xl, xr, x, padX, w - padX, F);
+      ticks.forEach(function (t) { s += L(x(t), top, x(t), bot, 'c-grid') + T(x(t), h - F * 0.45, fmtP(t), F, 'c-txt num', 'middle'); });
+      s += P(area(dn), 'w-down') + P(area(upP), 'w-up') + P(curve(dn), 's-down') + P(curve(upP), 's-up');
+      s += L(padX, bot, w - padX, bot, 'c-axis');
+      var xb = x(d.base), xc = x(d.center);
+      s += L(xb, top - F * 0.4, xb, bot, 'c-base') + L(xc, top - F * 0.4, xc, bot, 'c-center');
+      var lb = d.baseWord + ' ' + U.fmtInt(d.base), lc = '중심 ' + U.fmt10(d.center), ly = top - F * 0.8;
+      var right = d.center >= d.base;
+      var bx = right ? xb - 5 : xb + 5, cx = right ? xc + 5 : xc - 5;
+      var wb = tw(lb, F), wc = tw(lc, F, true);
+      if (right) { bx = Math.max(wb, bx); cx = Math.min(w - wc, cx); } else { bx = Math.min(w - wb, bx); cx = Math.max(wc, cx); }
+      s += T(bx, ly, lb, F, 'c-lab num', right ? 'end' : 'start') + T(cx, ly, lc, F, 'c-strong num', right ? 'start' : 'end');
+      var stops = [];
+      for (var k = 0; k <= 12; k++) stops.push([padX + (w - 2 * padX) * k / 12, 0]);
+      return {
+        h: h, svg: s, stops: stops,
+        probe: function (px) {
+          var v = x.inv(Math.max(padX, Math.min(w - padX, px))), p = D.cdf(v);
+          return {
+            cx: x(v), cy0: top - F * 0.4, cy1: bot, dots: [{ x: x(v), y: y(D.pdf(v)), r: 4.5, cls: v >= d.base ? 'c-dot' : 'c-dot' }], ax: x(v), ay: top,
+            title: U.fmtInt(v) + ' (' + U.signPct(U.pctOf(v, d.base)) + ')',
+            rows: [{ k: '--down', label: '이보다 낮게 끝날 확률', value: U.pct(p) }, { k: '--up', label: '이보다 높게 끝날 확률', value: U.pct(1 - p) }]
+          };
+        }
+      };
+    });
+  }
+
+  /* 오를 확률 막대(0~100%), 40~60% 구간 표시. d: {pUp} */
+  function gauge(el, d) {
+    mount(el, '오를 확률 ' + U.pct(d.pUp), function (w, F) {
+      var h = Math.round(F * 4.6), pad = 8, x = lin(0, 1, pad, w - pad), ty = F * 1.15, th = 12;
+      var s = rangeBar(x(0), x(1), ty, th, 'c-track') + '<rect x="' + n1(x(0.4)) + '" y="' + n1(ty) + '" width="' + n1(x(0.6) - x(0.4)) + '" height="' + th + '" class="c-zone"/>';
+      s += hBar(x(0.5), x(d.pUp), ty, th, d.pUp >= 0.5 ? 'f-up' : 'f-down');
+      s += L(x(0.5), ty - 4, x(0.5), ty + th + 4, 'c-ref');
+      s += C(x(d.pUp), ty + th / 2, 7, d.pUp >= 0.5 ? 'f-up ringed' : 'f-down ringed');
+      var ly = ty + th + F * 1.35;
+      [[0, '0%', 'start'], [0.4, '40%', 'middle'], [0.6, '60%', 'middle'], [1, '100%', 'end']].forEach(function (t) {
+        s += L(x(t[0]), ty + th + 2, x(t[0]), ty + th + 6, 'c-axis') + T(x(t[0]), ly, t[1], F, 'c-txt num', t[2]);
+      });
+      return {
+        h: ly + F * 0.4, svg: s, stops: [[x(d.pUp), ty]],
+        probe: function () {
+          return { dots: [], ax: x(d.pUp), ay: ty, title: '오를 확률', rows: [{ k: '--up', label: '오를 확률', value: U.pct(d.pUp, 1) }, { k: '--down', label: '내릴 확률', value: U.pct(1 - d.pUp, 1) }] };
+        }
+      };
+    });
+  }
+
+  /* 확률 범위 사다리: 50/80/90/95% 범위를 같은 축에. d: {ranges, base, center, baseWord} */
+  function ladder(el, d) {
+    mount(el, '50, 80, 90, 95% 범위', function (w, F) {
+      var lv = [['0.5', 'b1', '50%'], ['0.8', 'b2', '80%'], ['0.9', 'b3', '90%'], ['0.95', 'b4', '95%']];
+      var R = d.ranges, labW = tw('95%', F) + 10, numW = tw('0,000~0,000', F) + 10;
+      var stacked = (w - labW - numW) < 150;              // 좁으면 숫자를 막대 위 줄로
+      var barH = 14, rowH = stacked ? F * 1.5 + barH + 14 : Math.max(F * 1.9, barH + 16), topH = F * 1.6;
+      var lo = Math.min(R['0.95'][0], d.base), hi = Math.max(R['0.95'][1], d.base), pd = (hi - lo) * 0.03;
+      var x0 = labW, x1 = stacked ? w - 6 : w - numW;
+      var x = lin(lo - pd, hi + pd, x0, x1), s = '';
+      var h = topH + rowH * lv.length + 4;
+      var xb = x(d.base);
+      var bl = d.baseWord + ' ' + U.fmtInt(d.base), bw = tw(bl, F);
+      s += T(Math.max(bw / 2, Math.min(w - bw / 2, xb)), F * 1.05, bl, F, 'c-lab num', 'middle');
+      var rows = lv.map(function (l, i) {
+        var ry = topH + i * rowH, by = stacked ? ry + F * 1.45 : ry + (rowH - barH) / 2;
+        var ty = stacked ? ry + F * 1.1 : by + barH / 2 + F * 0.35;
+        s += T(0, ty, l[2], F, 'c-lab num', 'start');
+        s += rangeBar(x(R[l[0]][0]), x(R[l[0]][1]), by, barH, l[1]);
+        s += T(w, ty, rangeTxt(R[l[0]][0], R[l[0]][1]), F, 'c-strong num', 'end');
+        return { y: ry, by: by, l: l };
+      });
+      s += L(xb, topH - 4, xb, h - 2, 'c-base');
+      rows.forEach(function (r) { s += C(x(d.center), r.by + barH / 2, 4, 'c-dot'); });
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(lv.length - 1, Math.floor((py - topH) / rowH)));
+          var r = rows[i], a = R[r.l[0]][0], b = R[r.l[0]][1];
+          return {
+            band: { x: -4, y: r.y, w: w + 8, h: rowH }, ax: x((a + b) / 2), ay: r.y,
+            title: r.l[2] + ' 범위 (' + (r.l[0] === '0.5' ? '2번 중 1번' : r.l[0] === '0.8' ? '10번 중 8번' : r.l[0] === '0.9' ? '10번 중 9번' : '20번 중 19번') + ')',
+            rows: [{ label: '범위', value: rangeTxt(a, b) }, { label: '폭', value: U.fmt10(b - a) },
+              { label: d.baseWord + ' 대비', value: U.signPct(U.pctOf(a, d.base)) + ' ~ ' + U.signPct(U.pctOf(b, d.base)) }]
+          };
+        }
+      };
+    });
+  }
+
+  /* SOX 결과별 시나리오(포레스트): 80/95% 범위 + 중심, 각 줄에 오를 확률. d: {scenarios, base} */
+  function scenarios(el, d) {
+    var sc = d.scenarios;
+    mount(el, '오늘 밤 미국 반도체 지수 결과별 코스피 범위', function (w, F) {
+      var barH = 12, rowH = F * 1.45 + barH + 16, topH = F * 0.4, axisH = F * 1.7;
+      var all = [d.base];
+      sc.forEach(function (s0) { if (s0.n) { all.push(s0.r95[0], s0.r95[1]); } });
+      var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all), pd = (hi - lo) * 0.04;
+      var x = lin(lo - pd, hi + pd, 4, w - 4), s = '';
+      var h = topH + rowH * sc.length + axisH;
+      var ticks = priceTicks(lo - pd, hi + pd, x, 0, w, F);
+      var gy0 = topH, gy1 = topH + rowH * sc.length;
+      ticks.forEach(function (t) { s += L(x(t), gy0, x(t), gy1, 'c-grid') + T(x(t), h - F * 0.4, fmtP(t), F, 'c-txt num', 'middle'); });
+      var rows = sc.map(function (r, i) {
+        var ry = topH + i * rowH, by = ry + F * 1.45 + 2;
+        s += T(0, ry + F * 1.05, r.label.replace(/^SOX\s*/, '').replace(/-/g, '−'), F, 'c-lab', 'start');
+        s += T(w, ry + F * 1.05, r.n ? '오를 확률 ' + U.pct(r.pUp) : '자료 없음', F, 'c-strong num', 'end');
+        if (r.n) {
+          s += rangeBar(x(r.r95[0]), x(r.r95[1]), by, barH, 'b4') + rangeBar(x(r.r80[0]), x(r.r80[1]), by, barH, 'b2');
+          s += C(x(r.center), by + barH / 2, 4, 'c-dot');
+        }
+        return { y: ry, by: by, r: r };
+      });
+      s += L(x(d.base), gy0, x(d.base), gy1, 'c-base');
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(sc.length - 1, Math.floor((py - topH) / rowH))), r = rows[i], q = r.r;
+          if (!q.n) return { band: { x: -4, y: r.y, w: w + 8, h: rowH }, ay: r.y, title: q.label, rows: [{ label: '', value: '자료 없음' }] };
+          return {
+            band: { x: -4, y: r.y, w: w + 8, h: rowH }, ax: x(q.center), ay: r.y,
+            title: q.label.replace(/-/g, '−') + '일 때',
+            rows: [{ label: '오를 확률', value: U.pct(q.pUp) }, { label: '중심', value: U.fmt10(q.center) },
+              { k: '--band-2', label: '80%', value: rangeTxt(q.r80[0], q.r80[1]) }, { k: '--band-4', label: '95%', value: rangeTxt(q.r95[0], q.r95[1]) },
+              { label: '지난 500일 중 이런 밤', value: q.n + '번' }]
+          };
+        }
+      };
+    });
+  }
+
+  /* 간밤 해외 지표 변화: 0 기준 좌우 막대(상승 빨강 오른쪽, 하락 파랑 왼쪽). d: {items:[{name, full, v}]} */
+  function moves(el, d) {
+    var items = d.items;
+    mount(el, '간밤 해외 지표 변화', function (w, F) {
+      var labW = Math.max.apply(null, items.map(function (it) { return tw(it.name, F); })) + 12;
+      var barH = 14, rowH = Math.max(F * 2, 30);
+      var maxAbs = Math.max(0.5, Math.max.apply(null, items.map(function (it) { return it.v == null ? 0 : Math.abs(it.v); })));
+      // 값 라벨은 0 기준선의 반대쪽(막대가 없는 쪽)에 둔다 → 막대가 반쪽 폭을 다 쓸 수 있다
+      var half = (w - labW) / 2, xz = labW + half;
+      var k = (half - 4) / maxAbs;
+      var h = rowH * items.length + 6, s = '';
+      var rows = items.map(function (it, i) {
+        var ry = i * rowH, by = ry + (rowH - barH) / 2, ty = by + barH / 2 + F * 0.35;
+        s += T(0, ty, it.name, F, 'c-lab', 'start');
+        if (it.v == null) { s += T(xz + 6, ty, '자료 없음', F, 'c-txt', 'start'); return { y: ry, it: it }; }
+        var xv = xz + it.v * k;
+        s += hBar(xz, xv, by, barH, it.v >= 0 ? 'f-up' : 'f-down');
+        var pos = +it.v.toFixed(1) > 0;   // 0.0%는 오른쪽에 통일
+        s += T(pos ? xz - 6 : xz + 6, ty, U.signPct(it.v), F, 'c-strong num', pos ? 'end' : 'start');
+        return { y: ry, it: it, xv: xv };
+      });
+      s += L(xz, 0, xz, h, 'c-axis');
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(items.length - 1, Math.floor(py / rowH))), r = rows[i];
+          return {
+            band: { x: -4, y: r.y, w: w + 8, h: rowH }, ax: r.xv != null ? r.xv : xz, ay: r.y,
+            title: r.it.full, rows: [{ k: r.it.v == null ? null : (r.it.v >= 0 ? '--up' : '--down'), label: d.when || '', value: r.it.v == null ? '자료 없음' : U.signPct(r.it.v, 2) }]
+          };
+        }
+      };
+    });
+  }
+
+  // ================================================================== 기록 탭
+  /* 예측 띠 vs 실제: 그날 예측한 80/95% 띠(계단형) 위에 실제 종가, 95% 밖은 빨간 점. d: {rows} */
+  function bands(el, d) {
+    var rows = d.rows;
+    mount(el, '최근 ' + rows.length + '거래일 예측 범위와 실제 종가', function (w, F) {
+      var n = rows.length, h = Math.round(F * 17), top = F * 0.6, bot = h - F * 2;
+      var lo = Infinity, hi = -Infinity;
+      rows.forEach(function (r) { lo = Math.min(lo, r.lo95, r.actual); hi = Math.max(hi, r.hi95, r.actual); });
+      var pd = (hi - lo) * 0.04, ticks = niceTicks(lo - pd, hi + pd, 4);
+      var y = lin(Math.min(lo - pd, ticks[0]), Math.max(hi + pd, ticks[ticks.length - 1]), bot, top);
+      var left = tw(fmtP(ticks[ticks.length - 1]), F) + 8, right = 6, step = (w - left - right) / n;
+      var x = function (i) { return left + step * (i + 0.5); };
+      var s = '';
+      ticks.forEach(function (t) { if (y(t) >= top - 1 && y(t) <= bot + 1) s += L(left, y(t), w - right, y(t), 'c-grid') + T(left - 6, y(t) + F * 0.35, fmtP(t), F, 'c-txt num', 'end'); });
+      var ribbon = function (loK, hiK) {
+        var up = [], dn = [];
+        rows.forEach(function (r, i) { var a = left + step * i, b = a + step; up.push([a, y(r[hiK])], [b, y(r[hiK])]); dn.push([a, y(r[loK])], [b, y(r[loK])]); });
+        return poly(up.concat(dn.reverse())) + 'Z';
+      };
+      s += P(ribbon('lo95', 'hi95'), 'b4') + P(ribbon('lo80', 'hi80'), 'b2');
+      s += L(left, bot, w - right, bot, 'c-axis');
+      s += P(poly(rows.map(function (r, i) { return [x(i), y(r.actual)]; })), n > 100 ? 'c-line thin' : 'c-line');
+      rows.forEach(function (r, i) { if (!r.in95) s += C(x(i), y(r.actual), 4, 'c-miss'); });
+      dateTicks(rows.map(function (r) { return r.date; }), x, F, n > 150 ? 'ym' : n > 30 ? 'm' : 'md').forEach(function (t) {
+        var wl = tw(t.s, F) / 2;
+        s += L(t.x, bot, t.x, bot + 4, 'c-axis') + T(Math.max(left + wl - 4, Math.min(w - wl, t.x)), h - F * 0.45, t.s, F, 'c-txt num', 'middle');
+      });
+      var stops = rows.map(function (r, i) { return [x(i), 0]; });
+      return {
+        h: h, svg: s, stops: stops,
+        probe: function (px) {
+          var i = Math.max(0, Math.min(n - 1, Math.floor((px - left) / step))), r = rows[i];
+          var out = [{ k: '--ink', label: '실제 종가', value: U.fmtInt(r.actual) }, { k: '--band-2', label: '80% 범위', value: rangeTxt(r.lo80, r.hi80) },
+            { k: '--band-4', label: '95% 범위', value: rangeTxt(r.lo95, r.hi95) }];
+          if (!r.in95) out.push({ k: '--up', label: '', value: '95% 범위 밖' });
+          return { cx: x(i), cy0: top, cy1: bot, dots: [{ x: x(i), y: y(r.actual), r: 4.5, cls: r.in95 ? 'c-dot' : 'c-miss' }], ax: x(i), ay: Math.min(y(r.hi95), top + F * 4), title: U.fmtDateLong(r.date), rows: out };
+        }
+      };
+    });
+  }
+
+  /* 보정: 목표(50/80/90/95%) vs 실제 적중 비율, 막대 쌍. d: {stats} */
+  function calibration(el, d) {
+    var st = d.stats, sh = st.shown || st;
+    var lv = [[0.5, sh.cov50], [0.8, sh.cov80], [0.9, sh.cov90], [0.95, sh.cov95]];
+    mount(el, '범위별 목표와 실제 비율', function (w, F) {
+      var labW = tw('95% 범위', F) + 12, valW = tw('100.0%', F, true) + 8;
+      var tH = 8, aH = 14, gap = 3, rowH = tH + gap + aH + Math.max(16, F * 1.1), axisH = F * 1.7;
+      var x = lin(0, 1, labW, w - valW), h = rowH * lv.length + axisH, s = '';
+      var mid = (x(1) - x(0)) / 2 > tw('100%', F) * 1.4;
+      [0, 0.5, 1].forEach(function (t, k) {
+        s += L(x(t), 0, x(t), rowH * lv.length - 8, 'c-grid');
+        if (k !== 1 || mid) s += T(x(t), h - F * 0.4, (t * 100) + '%', F, 'c-txt num', k === 0 ? 'start' : k === 2 ? 'middle' : 'middle');
+      });
+      var rows = lv.map(function (l, i) {
+        var ry = i * rowH, ty = ry, ay = ry + tH + gap;
+        s += T(0, ay + aH / 2 + F * 0.35, Math.round(l[0] * 100) + '% 범위', F, 'c-lab', 'start');
+        s += hBar(x(0), x(l[0]), ty, tH, 'c-target') + hBar(x(0), x(l[1]), ay, aH, 'b1');
+        s += T(x(l[1]) + 6, ay + aH / 2 + F * 0.35, U.pct(l[1], 1), F, 'c-strong num', 'start');
+        return { y: ry, l: l };
+      });
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(lv.length - 1, Math.floor(py / rowH))), r = rows[i];
+          return {
+            band: { x: -4, y: r.y - 4, w: w + 8, h: rowH }, ax: x(r.l[1]), ay: r.y,
+            title: Math.round(r.l[0] * 100) + '% 범위', rows: [{ k: '--target', label: '목표', value: Math.round(r.l[0] * 100) + '%' },
+              { k: '--band-1', label: '실제 (' + st.holdoutN + '일 중 ' + Math.round(r.l[1] * st.holdoutN) + '일)', value: U.pct(r.l[1], 1) }]
+          };
+        }
+      };
+    });
+  }
+
+  /* 확신도별 방향 적중률. d: {stats} */
+  function tiers(el, d) {
+    var st = d.stats;
+    var list = [{ name: '모든 날', hit: st.dirHit, n: st.dirN, share: 1 }].concat((st.dirTiers || []).map(function (t) {
+      var a = Math.round(t.thr * 100);
+      return { name: a + '% 이상·' + (100 - a) + '% 이하', full: '오를 확률 ' + a + '% 이상 또는 ' + (100 - a) + '% 이하인 날', hit: t.hit, n: t.n, share: t.share };
+    }));
+    mount(el, '확신 정도별 오르내림 맞힌 비율', function (w, F) {
+      var barH = 14, rowH = F * 1.45 + barH + F * 1.25 + 14, h = rowH * list.length, s = '';
+      var x = lin(0, 1, 0, w);
+      var rows = list.map(function (r, i) {
+        var ry = i * rowH, by = ry + F * 1.45 + 2;
+        s += T(0, ry + F * 1.05, r.name, F, 'c-lab', 'start') + T(w, ry + F * 1.05, U.pct(r.hit, 1), F, 'c-strong num', 'end');
+        s += rangeBar(x(0), x(1), by, barH, 'c-track') + hBar(x(0), x(r.hit), by, barH, 'b1');
+        s += L(x(0.5), by - 3, x(0.5), by + barH + 3, 'c-ref');
+        s += T(0, by + barH + F * 1.1, r.share === 1 ? '전체 ' + r.n + '일' : '전체의 ' + U.pct(r.share) + ' (' + r.n + '일)', F * 0.93, 'c-txt num', 'start');
+        return { y: ry, r: r };
+      });
+      s += T(w, rows[0].y + F * 1.45 + 2 + barH + F * 1.1, '세로선 = 반반(50%)', F * 0.93, 'c-txt', 'end');
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(list.length - 1, Math.floor(py / rowH))), r = rows[i];
+          return { band: { x: -4, y: r.y - 2, w: w + 8, h: rowH - 6 }, ax: x(r.r.hit), ay: r.y, title: r.r.full || r.r.name, rows: [{ k: '--band-1', label: '맞힌 비율', value: U.pct(r.r.hit, 1) }, { label: '해당 날', value: r.r.n + '일' }] };
+        }
+      };
+    });
+  }
+
+  /* 롤링 60일 95% 적중률 추이 + 목표 95% 기준선. d: {series:[{date,rate}], win} */
+  function rolling(el, d) {
+    var sr = d.series;
+    mount(el, '최근 ' + d.win + '일 95% 범위 안에 든 비율의 추이', function (w, F) {
+      var n = sr.length, h = Math.round(F * 13), top = F * 1.6, bot = h - F * 2;
+      var mn = Math.min.apply(null, sr.map(function (p) { return p.rate; }));
+      var lo = Math.min(0.9, Math.floor((mn - 0.01) * 20) / 20), hiV = 1;
+      var y = lin(lo, hiV, bot, top), ticks = [];
+      for (var tv = lo; tv <= 1.0001; tv += 0.05) ticks.push(Math.round(tv * 100) / 100);
+      var left = tw('100%', F) + 8, right = 8, x = lin(0, n - 1, left, w - right), s = '';
+      ticks.forEach(function (t) { s += L(left, y(t), w - right, y(t), 'c-grid') + T(left - 6, y(t) + F * 0.35, Math.round(t * 100) + '%', F, Math.abs(t - 0.95) < 1e-6 ? 'c-strong num' : 'c-txt num', 'end'); });
+      s += L(left, y(0.95), w - right, y(0.95), 'c-ref');
+      s += P(poly(sr.map(function (p, i) { return [x(i), y(p.rate)]; })), 's-b1');
+      var last = sr[n - 1];
+      s += C(x(n - 1), y(last.rate), 4.5, 'b1 ringed');
+      var ly = last.rate >= 0.95 ? Math.min(y(last.rate), y(0.95)) - 8 : Math.max(y(last.rate), y(0.95)) + F + 2;
+      s += T(w - right, ly, U.pct(last.rate, 1), F, 'c-strong num', 'end');
+      s += L(left, bot, w - right, bot, 'c-axis');
+      dateTicks(sr.map(function (p) { return p.date; }), x, F, 'ym').forEach(function (t) {
+        var wl = tw(t.s, F) / 2;
+        s += T(Math.max(left + wl - 4, Math.min(w - wl, t.x)), h - F * 0.45, t.s, F, 'c-txt num', 'middle');
+      });
+      return {
+        h: h, svg: s, stops: sr.map(function (p, i) { return [x(i), 0]; }).filter(function (p, i) { return i % 5 === 0 || i === n - 1; }),
+        probe: function (px) {
+          var i = Math.max(0, Math.min(n - 1, Math.round(x.inv(px)))), p = sr[i];
+          return { cx: x(i), cy0: top, cy1: bot, dots: [{ x: x(i), y: y(p.rate), r: 4.5, cls: 'b1' }], ax: x(i), ay: top, title: U.fmtDateLong(p.date) + '까지 ' + d.win + '일',
+            rows: [{ k: '--band-1', label: d.win + '일 중 ' + Math.round(p.rate * d.win) + '일 범위 안', value: U.pct(p.rate, 1) }] };
+        }
+      };
+    });
+  }
+
+  /* 최근 20거래일 결과 점 줄: 95% 범위 안 ●, 밖 ○. d: {rows} */
+  function dots(el, d) {
+    var rows = d.rows;
+    mount(el, '최근 ' + rows.length + '거래일 95% 범위 결과', function (w, F) {
+      var n = rows.length, sp = w / n, r = Math.max(4, Math.min(8, sp * 0.33)), cy = r + 6, h = cy + r + F * 1.6, s = '';
+      var x = function (i) { return sp * (i + 0.5); };
+      rows.forEach(function (q, i) { s += C(x(i), cy, q.in95 ? r : r - 1, q.in95 ? 'b1' : 'c-out'); });
+      s += T(0, h - F * 0.3, U.fmtSlash(rows[0].date), F, 'c-txt num', 'start') + T(w, h - F * 0.3, U.fmtSlash(rows[n - 1].date), F, 'c-txt num', 'end');
+      return {
+        h: h, svg: s, stops: rows.map(function (q, i) { return [x(i), cy]; }),
+        probe: function (px) {
+          var i = Math.max(0, Math.min(n - 1, Math.floor(px / sp))), q = rows[i];
+          return { band: { x: x(i) - sp / 2, y: 0, w: sp, h: cy * 2 }, ax: x(i), ay: 0, title: U.fmtDateLong(q.date),
+            rows: [{ label: '실제 종가', value: U.fmtInt(q.actual) }, { label: '95% 범위', value: rangeTxt(q.lo95, q.hi95) }, { k: q.in95 ? '--band-1' : '--up', label: '', value: q.in95 ? '범위 안' : '범위 밖' }] };
+        }
+      };
+    });
+  }
+
+  root.Charts = {
+    fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
+    bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots,
+    redrawAll: redrawAll, reset: reset, _tw: tw, _niceTicks: niceTicks
+  };
+})(window);
