@@ -30,7 +30,7 @@
     sox: { up: '삼성전자·SK하이닉스에 좋은 소식이라 {D} 코스피에 힘이 될 수 있어요.', down: '삼성전자·SK하이닉스에 부담이 되는 소식이라 {D} 코스피가 힘을 받기 어려울 수 있어요.' },
     mu: { up: '마이크론은 SK하이닉스·삼성전자와 같은 메모리 반도체 회사라, {D} 우리 반도체 주식과 코스피에 좋은 소식이에요.', down: '마이크론은 SK하이닉스·삼성전자와 같은 메모리 반도체 회사라, {D} 우리 반도체 주식과 코스피에 부담이 될 수 있어요.' },
     ewyx: { up: '해외 투자자들이 밤사이 한국 주식을 좋게 봤다는 뜻이라 {D} 코스피에 힘이 될 수 있어요.', down: '해외 투자자들이 밤사이 한국 주식을 덜 좋게 봤다는 뜻이라 {D} 코스피에 부담이 될 수 있어요.' },
-    ndx: { up: '미국 기술주 분위기가 좋았다는 뜻이라 {D} 우리 시장에도 대체로 좋은 신호예요.', down: '미국 기술주 분위기가 가라앉았다는 뜻이라 {D} 우리 시장에도 조심스러운 신호예요.' },
+    ndx: { up: '미국 기술주가 올랐다는 뜻이에요. 이런 날 다음 날 우리 시장도 오른 경우가 많았지만, 늘 그렇지는 않았어요.', down: '미국 기술주가 내렸다는 뜻이에요. 이런 날 다음 날 우리 시장도 힘이 약했던 경우가 많았지만, 늘 그렇지는 않았어요.' },
     usdkrw: { up: '원화 값이 내렸다는 뜻이라, 외국인 투자자들이 한국 주식을 팔고 나갈 수 있어 {D} 코스피에 부담이 될 수 있어요.', down: '원화 값이 올랐다는 뜻이라, 외국인 투자자들이 한국 주식을 사기 좋아져 {D} 코스피에 힘이 될 수 있어요.' },
     vix: { up: '투자자들의 불안이 커졌다는 뜻이라 {D} 코스피에 부담이 될 수 있어요.', down: '투자자들의 불안이 줄었다는 뜻이라 {D} 코스피에 힘이 될 수 있어요.' },
     tnx: { up: '금리가 오르면 주식의 매력이 줄어드는 경향이 있어 {D} 코스피에 조금 부담이 될 수 있어요.', down: '금리가 내리면 주식의 매력이 커지는 경향이 있어 {D} 코스피에 조금 힘이 될 수 있어요.' }
@@ -121,7 +121,9 @@
     });
     var items = Object.keys(OB_INDICATORS).sort(function (a, b) { return OB_INDICATORS[a].order - OB_INDICATORS[b].order; }).map(function (k) {
       var cfg = OB_INDICATORS[k], raw = C.series[k] || { status: 'missing' }, s = S[k];
-      var it = { key: k, name: cfg.name, term: cfg.term, main: cfg.main, why: OB_WHY[k] };
+      // 검수 S1: SOX와 마이크론이 반대로 움직였으면 마이크론도 기본 목록에 보여 준다(묶음 점수가 상쇄된 이유가 보이게)
+      var muSplit = k === 'mu' && S.sox && S.mu && S.sox.level * S.mu.level < 0;
+      var it = { key: k, name: cfg.name, term: cfg.term, main: cfg.main || muSplit, why: OB_WHY[k] };
       if (!s) {
         return Object.assign(it, { valueText: '', changeText: raw.status === 'closed' ? '어젯밤 거래 없음(휴장)' : '자료 없음', direction: 'none', level: null, levelText: '', arrow: '–', color: 'gray', impact: 'none', impactText: '' });
       }
@@ -191,6 +193,13 @@
       if (se) { ranked.splice(ranked.indexOf(se), 1); ranked.unshift(se); }
     }
     var lead = ranked[0];
+    // 검수 S1: 묶음 점수가 상쇄돼도 '크게' 움직인 지표는 빼먹지 않는다
+    var bigItems = Object.keys(S).map(function (k) { return S[k]; }).filter(function (x) { return Math.abs(x.level) === 2 && x.score !== 0; })
+      .sort(function (a, b) { return Math.abs(b.score) - Math.abs(a.score); });
+    if ((!lead || (Math.abs(lead.score) < 0.12 && !lead.big)) && bigItems.length) {
+      var bi = bigItems[0];
+      lead = { g: bi.key === 'sox' || bi.key === 'mu' ? 'semis' : bi.key, score: bi.score, rep: bi, big: true, notable: true };
+    }
 
     if (!lead || (Math.abs(lead.score) < 0.12 && !lead.big)) {
       sentences.push(T + ' 세계 시장은 대체로 조용했어요.');
@@ -202,7 +211,7 @@
       return { sentences: sentences, items: items, mood: mood, lead: null };
     }
 
-    var L = lead.rep, Ls = Math.sign(lead.score);
+    var L = lead.rep, Ls = Math.sign(L.score) || Math.sign(lead.score);   // 문장에 쓰는 지표의 방향을 따른다
     var s1 = T + ' ' + OB_INDICATORS[L.key].subj + ' ' + obVerb(L);
     if (lead.g === 'semis') {
       var other = L.key === 'sox' ? S.mu : S.sox;
@@ -212,11 +221,16 @@
     sentences.push(s1 + '.');
     var impactOf = function (s) { return fill(OB_IMPACT[s.key][s.level > 0 ? 'up' : 'down']); };
 
-    var opp = ranked.filter(function (x) { return Math.sign(x.score) === -Ls && x.notable && Math.abs(x.score) >= 0.4 * Math.abs(lead.score); })[0];
-    if (opp) {
-      sentences.push('반면 ' + OB_INDICATORS[opp.rep.key].subj + ' ' + obVerb(opp.rep) + '.');
+    var opp = ranked.filter(function (x) { return x !== lead && Math.sign(x.score) === -Ls && x.notable && Math.abs(x.score) >= 0.4 * Math.abs(lead.score); })[0];
+    var oppRep = opp ? opp.rep : null;
+    if (oppRep && Math.sign(oppRep.score) !== -Ls) oppRep = null;
+    if (!oppRep) {   // 검수 S1: '크게' 움직인 지표가 리드와 반대쪽이면 반드시 '반면'으로 함께 말한다
+      oppRep = bigItems.filter(function (x) { return x.key !== L.key && Math.sign(x.score) === -Ls; })[0] || null;
+    }
+    if (oppRep) {
+      sentences.push('반면 ' + OB_INDICATORS[oppRep.key].subj + ' ' + obVerb(oppRep) + '.');
       sentences.push(fill(OB_CONFLICT_END[moodSign]));
-      return { sentences: sentences, items: items, mood: mood, lead: L.key, conflict: opp.rep.key };
+      return { sentences: sentences, items: items, mood: mood, lead: L.key, conflict: oppRep.key };
     }
     sentences.push(impactOf(L));
     if (moodSign !== 0 && moodSign === -Ls) {

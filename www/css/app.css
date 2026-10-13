@@ -355,3 +355,14 @@ details.acc .read{ padding: 0 0 12px 1.4em; }
 html.shot, html.shot body, html.shot #app{ height: auto; }
 html.shot main{ overflow: visible; }
 [hidden]{ display: none !important; }
+
+/* 접는 카드 (검수 N1) */
+.foldhead{ display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--touch); padding: 0; border: 0; background: none; text-align: left; color: inherit; }
+.foldhead .fh-t{ flex: 1 1 auto; font-size: var(--fs-lg); font-weight: 700; line-height: var(--lh-head); }
+.foldhead .fh-x{ flex: none; font-size: var(--fs-sm); font-weight: 700; color: var(--brand); white-space: nowrap; }
+.fh-s{ margin-top: 2px; }
+/* 지난 예측 (검수 S9) */
+.expired-card{ background: var(--flat-soft); filter: grayscale(1); }
+.expired-card .r80value{ font-size: var(--fs-xl); color: var(--text-2); }
+/* 첫 실행 3장: 동의 칸 고정 영역 (검수 S2) */
+.ob-foot .check{ min-height: 56px; padding: 8px 12px; }

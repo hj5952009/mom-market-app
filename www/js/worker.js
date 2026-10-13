@@ -4,7 +4,7 @@ importScripts('util.js', 'model.js', 'overnight.js', 'context.js', 'compute.js')
 self.onmessage = function (e) {
   var t0 = Date.now();
   try {
-    var out = Compute.computeAll(e.data.raw, e.data.now);
+    var out = Compute.computeAll(e.data.raw, e.data.now, e.data.opts);
     out.workerMs = Date.now() - t0;
     self.postMessage({ ok: true, out: out });
   } catch (err) {

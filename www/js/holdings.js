@@ -205,11 +205,12 @@
     var H = (kospiHi80Pct - kospiLo80Pct) / 2;
     var se = residVolPct != null ? residVolPct : Math.sqrt(Math.max(dailyVolPct * dailyVolPct - Math.pow(beta * (kospiVolPct || 0), 2), 0.25 * dailyVolPct * dailyVolPct));
     var linkedX = function () { return Math.min(30, calibK * Math.hypot(betaAdj * H, Z80 * se)); };
-    var moveLine = function (x, suffix) { return dayWord + '은 보통 ±' + fmt(roundMove(x)) + '% 정도 움직일 수 있어요.' + (suffix || ''); };
+    // 검수 S11: '보통 ±X%'가 매일 그만큼 움직인다는 뜻으로 읽히지 않게 '10번 중 8번은 이 안'을 같은 줄에 붙인다.
+    var moveLine = function (x, suffix) { return dayWord + '은 10번 중 8번은 ±' + fmt(roundMove(x)) + '% 안에서 움직일 수 있어요.' + (suffix || ''); };
     var hitLine = function () {
       return calibHit != null
-        ? '(10번 중 8번은 이 안이라는 뜻이에요 · 지난 ' + calibN + '일 실제로 든 날: 10번 중 ' + Math.round(calibHit * 10) + '번)'
-        : '(10번 중 8번은 이 안이라는 뜻이에요)';
+        ? '(코스피 범위를 옮겨 본 숫자예요 · 지난 ' + calibN + '일 실제로 이 안에 든 날: 10번 중 ' + Math.round(calibHit * 10) + '번)'
+        : '(코스피 범위를 옮겨 본 숫자예요)';
     };
     var amountLine = function (x) { return amountWon ? '넣어 두신 ' + manwon(amountWon) + ' 기준으로는 대략 ±' + manwon(amountWon * roundMove(x) / 100) + '이에요.' : null; };
     var betaLine = function (subj) {
@@ -231,7 +232,7 @@
     if (type === 'stock') {
       if (status === 'vol_only') {
         x = Math.min(30, 1.1 * (move80Pct != null ? move80Pct : Z80 * dailyVolPct));
-        push(moveLine(x), '(지난 움직임 기준, 10번 중 8번은 이 안이라는 뜻이에요)', amountLine(x),
+        push(moveLine(x), '(지난 움직임을 기준으로 잡은 숫자예요)', amountLine(x),
           '상장된 지 얼마 안 돼 코스피와의 관계는 아직 계산하지 않았어요.',
           '※ ' + name + '의 예측이 아니에요. 회사 소식이 있는 날은 이 범위를 벗어날 수 있어요.');
         return { title: name, kind: 'stock_new', lines: lines, x: x };
@@ -247,7 +248,7 @@
         N + ' 코스피보다 회사 자체 소식(실적·임상·계약 등)에 더 크게 움직여 온 종목이에요.',
         Math.abs(beta) >= 0.3 && beta > 0 ? '코스피가 1% 움직일 때 보통 ' + fmt(beta) + '% 움직였지만, 회사 소식의 영향이 훨씬 컸어요.' : betaLine(N),
         bigMoveDays >= 1 ? '지난 1년 동안 하루에 10% 넘게 움직인 날이 ' + bigMoveDays + '번 있었어요.' : null,
-        calibHit != null ? '(지난 ' + calibN + '일 이 범위 안에 든 날: 10번 중 ' + Math.round(calibHit * 10) + '번)' : '(10번 중 8번은 이 안이라는 뜻이에요)',
+        calibHit != null ? '(지난 ' + calibN + '일 이 범위 안에 든 날: 10번 중 ' + Math.round(calibHit * 10) + '번)' : null,
         amountLine(x)].concat(extras(), ['※ 코스피와 다르게 움직이는 날이 많아요. 이 숫자는 ' + name + '의 예측이 아니에요.']));
       return { title: name, kind: 'stock_volatile', lines: lines, x: x };
     }

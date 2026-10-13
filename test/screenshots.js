@@ -34,11 +34,14 @@ const SHOTS = [
   ['15_worry', 'tab=holdings&page=worry'], ['16_tip', 'tab=more&page=tip&id=tip_after_big_drop'],
   ['17_onboarding_1', 'ob=1&obstep=0', { viewportOnly: true }], ['17_onboarding_2', 'ob=1&obstep=1', { viewportOnly: true }],
   ['17_onboarding_3', 'ob=1&obstep=2', { viewportOnly: true }], ['17_onboarding_3_x1.3', 'ob=1&obstep=2&scale=1.3', { viewportOnly: true }],
+  ['17_onboarding_3_x1.56', 'ob=1&obstep=2&scale=1.3&big=1', { viewportOnly: true }],
   ['18_loading_first', 'tab=today&loading=1', { viewportOnly: true }],
   ['19_offline_nocache', 'tab=today&error=offline&nocache=1', { viewportOnly: true }],
   ['20_offline_cached', 'tab=today&error=offline', { viewportOnly: true }],
   ['21_today_expired', 'tab=today&now=2026-10-16T10:00:00%2B09:00'],
   ['22_today_weekend', 'tab=today&now=2026-10-17T10:00:00%2B09:00', { viewportOnly: true }],
+  ['24_today_us_missing', 'tab=today&scenario=usmissing'], ['24_today_us_missing_x1.3', 'tab=today&scenario=usmissing&scale=1.3', { viewportOnly: true }],
+  ['25_today_first_screen', 'tab=today&scenario=morning', { viewportOnly: true }], ['25_today_first_screen_x1.3', 'tab=today&scenario=morning&scale=1.3', { viewportOnly: true }],
   ['23_today_market_open', 'tab=today&scenario=morning&now=2026-10-14T10:30:00%2B09:00', { viewportOnly: true }]
 ];
 

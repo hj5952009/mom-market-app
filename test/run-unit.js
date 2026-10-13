@@ -29,7 +29,7 @@ const BANNED = [
   '확실', '틀림없이', '무조건', '반드시', '100%', '보장', '적중률 높은', '잘 맞는', '정확한 예측', '정답', '오를 것입니다', '내릴 것입니다',
   '바닥', '꼭지', '천장', '대박', '떡상', '급등', '로켓', '폭락', '폭등', '떡락', '패닉', '공포', '위험!', '경고!', '주의!',
   '놓치면 후회', '마지막 기회', '지금 아니면', '반등', '곧 회복', '개미', '세력', '기회', '담으세요', '정리하세요', '추천', '붕괴', '안전해요', '걱정 마세요',
-  '매수', '매도', '존버', '거의 확실'
+  '매수', '매도', '존버', '거의 확실', '신호', '적중률'
 ];
 // 허용 목록: 뉴스 용어 풀이(용어 이름 자체)만. 이유는 content.js 주석 참고.
 const ALLOW = [/외국인 매수·매도/, /외국인 순매수/, /외국인 순매도/, /'순매수'/, /'순매도'/, /'공포지수'/, /공포지수/];
@@ -159,6 +159,7 @@ ok('7일 중 5일 → 과잉매매 카드(40~60% 적중 계산값)', go && go.id
 eq('40~60% 구간 역산', Reading.flatBandHit(R.stats), { n: 183, hits: 100, pct: 55 });
 const lv = Reading.leverageCard({ name: 'KODEX 레버리지', type: 'etf_lev', leverage: 2 }, R);
 ok('레버리지 범위 ×2 (−21.6%~+21.9%)', lv.body.indexOf('−21.6% ~ +21.9%') >= 0, lv.body);
+ok('레버리지 카드에 20번 중 19번 / 10번 중 8번 라벨 (검수 S11)', lv.body.indexOf('20번 중 19번 기준') >= 0 && lv.body.indexOf('10번 중 8번 기준') >= 0, lv.body);
 ok('이름으로 레버리지 감지', Reading.isLeveraged({ name: 'TIGER 200선물인버스2X', type: 'stock' }) && !Reading.isLeveraged({ name: '삼성전자', type: 'stock' }));
 
 section('reading: 시나리오·자세히·성적표');
@@ -241,14 +242,14 @@ eq('초성 검색', Holdings.search('ㅅㅅㅈㅈ').map(c => c.name), ['삼성�
 eq('이름 검색', Holdings.search('하이닉스').map(c => c.name), ['SK하이닉스']);
 const base = { kospiLo80Pct: -6.52, kospiHi80Pct: 7.96, kospiCenterPct: 0.91, dayWord: '내일' };
 const cardEx = Holdings.holdingCard(Object.assign({ name: '예시', type: 'stock', beta: 1.2, betaAdj: 1.2, residVolPct: 2.0, calibK: 1.0, dailyVolPct: 2.5, kospiVolPct: 2.0, r2: 0.5 }, base));
-eq('§2-4 계산 확인 ±9%', cardEx.lines[0], '내일은 보통 ±9% 정도 움직일 수 있어요.');
+eq('§2-4 계산 확인 ±9% (10번 중 8번 표기, 검수 S11)', cardEx.lines[0], '내일은 10번 중 8번은 ±9% 안에서 움직일 수 있어요.');
 const lev = Holdings.holdingCard(Object.assign({ name: 'KODEX 인버스', type: 'etf_lev', leverage: -1, beta: -1.02, dailyVolPct: 2, residVolPct: 0.3, calibK: 1 }, base));
 ok('인버스 문구', lev.lines.indexOf('코스피가 1% 오를 때 보통 1% 내렸어요.') >= 0, lev.lines);
 const big = Holdings.holdingCard(Object.assign({ name: '말도안되는', type: 'stock', beta: 3, betaAdj: 3, residVolPct: 20, calibK: 2, dailyVolPct: 30, kospiVolPct: 2 }, base));
 eq('±30% 넘지 않음', big.x, 30);
 const amt = Holdings.holdingCard(Object.assign({ name: '삼성전자', type: 'stock', beta: 1.3, betaAdj: 1.2, residVolPct: 2, calibK: 1, calibHit: 0.8, calibN: 120, dailyVolPct: 2.5, kospiVolPct: 2.2, r2: 0.5, amountWon: 10000000 }, base));
 ok('금액 줄', amt.lines.indexOf('넣어 두신 1,000만 원 기준으로는 대략 ±90만 원이에요.') >= 0, amt.lines);
-ok('지난 120일 실제로 든 날', amt.lines[1] === '(10번 중 8번은 이 안이라는 뜻이에요 · 지난 120일 실제로 든 날: 10번 중 8번)', amt.lines[1]);
+ok('지난 120일 실제로 든 날', amt.lines[1] === '(코스피 범위를 옮겨 본 숫자예요 · 지난 120일 실제로 이 안에 든 날: 10번 중 8번)', amt.lines[1]);
 const cards = ['stock', 'etf_kr', 'fund_kr', 'etf_lev', 'etf_us', 'fund_global', 'fund_mixed', 'bond', 'cash'].map(t =>
   Holdings.holdingCard(Object.assign({ name: '테스트', type: t, beta: 0.9, dailyVolPct: 1.5, residVolPct: 1, kospiVolPct: 1.4, move80Pct: 1.2, desc: '코스피200', leverage: 2, overnight: { idxPct: 0.8, fxPct: 0.3 }, betaStable: false, betaRange: [0.7, 1.4], nDays: 150 }, base)));
 cards.forEach(c => ok('방향 문구 없음: ' + c.kind, !c.lines.some(l => /오를 것|내릴 것|오를 거|내릴 거/.test(l)), c.lines));
@@ -281,11 +282,114 @@ scan('glossary', Content.GLOSSARY);
 Content.TIPS.forEach(t => scan('tip ' + t.id, Content.tipBody(t, { ctx: C, afterBigDrop: Context.MC.afterBigDrop(DS.kospi), result: R })));
 scan('reading texts', [vFix, rv, yc, more, Reading.GUARD_TEXT, gPanic, gNext, g65, gm, go, lv, scen]);
 
+section('검수 S1: 반도체가 상쇄돼도 크게 내린 SOX를 빼먹지 않음');
+const bS1 = Overnight.overnightBrief(mkChanges({
+  sox: ok1({ pct: -3.0, disp: -3.0, last: 5874, sigma: 2.1 }), mu: ok1({ pct: 2.8, disp: 2.8, last: 120, sigma: 3.3 }),
+  vix: ok1({ pct: -9.0, disp: -9.0, last: 15.7, sigma: 7.5 }), usdkrw: ok1({ pct: 0, disp: 0, last: 1418, sigma: 0.45 })
+}, { modelPUp: 0.6 }));
+ok('"반면 미국 반도체 주식이 약 3% 내렸어요" 포함', bS1.sentences.some(t => t.indexOf('반면 미국 반도체 주식이 약 3% 내렸어요') === 0), bS1.sentences);
+ok('리드 영향 문장(힘이 될 수 있어요)을 따로 말하지 않음', !bS1.sentences.some(t => /힘이 될 수 있어요\.$/.test(t)), bS1.sentences);
+eq('SOX와 반대로 움직인 마이크론은 기본 목록', bS1.items.find(i => i.key === 'mu').main, true);
+const bS1b = Overnight.overnightBrief(mkChanges({ sox: ok1({ pct: -3.2, disp: -3.2, last: 5874, sigma: 2.1 }), mu: ok1({ pct: 4.0, disp: 4.0, last: 120, sigma: 3.3 }) }, { modelPUp: 0.55 }));
+ok('조용한 밤으로 넘기지 않음(크게 움직인 지표가 있으면)', !bS1b.sentences.some(t => t.indexOf('조용했어요') >= 0), bS1b.sentences);
+ok('크게 내린 SOX가 첫 문장', bS1b.sentences[0].indexOf('미국 반도체 주식이 3% 넘게 내렸어요') >= 0, bS1b.sentences);
+// 모든 문장 조합: 리드 지표 방향과 영향 문장 방향이 같아야 함
+(function () {
+  const keys = ['sox', 'mu', 'ewyx', 'ndx', 'usdkrw', 'vix', 'tnx'], sig = { sox: 2.1, mu: 3.3, ewyx: 1.1, ndx: 1.35, usdkrw: 0.45, vix: 7.5, tnx: 0.065 };
+  let seed = 7, bad = 0, n = 0; const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  for (let t = 0; t < 400; t++) {
+    const series = {};
+    keys.forEach(k => { const z = (rnd() - 0.5) * 5, v = z * sig[k]; series[k] = ok1({ pct: k === 'usdkrw' ? z * 0.45 : v, disp: k === 'usdkrw' ? z * 6 : v, last: k === 'vix' ? 20 : k === 'tnx' ? 4.1 : k === 'usdkrw' ? 1400 : 100, sigma: sig[k], ewyBase: '어제 코스피' }); });
+    const b = Overnight.overnightBrief(mkChanges(series, { modelPUp: 0.3 + rnd() * 0.4 })); n++;
+    if (!b.lead || b.conflict) continue;
+    const it = b.items.find(i => i.key === b.lead), second = b.sentences[1] || '';
+    const good = /힘이 될|좋은 소식|올랐다는|힘을 받기|부담/.test(second);
+    const plus = it.impact === 'plus';
+    if (good && plus && /부담|힘을 받기 어려울|내렸다는/.test(second)) bad++;
+    if (!plus && /힘이 될 수 있어요|좋은 소식이에요/.test(second)) bad++;
+    // '크게' 움직인 반대쪽 지표가 있는데 '반면'이 없으면 안 됨
+    const bigOpp = b.items.some(i => i.level != null && Math.abs(i.level) === 2 && i.impact !== 'none' && i.impact !== it.impact);
+    if (bigOpp) bad++;
+  }
+  eq('무작위 400개: 리드와 영향 문장 방향 일치, 반대쪽 큰 움직임은 항상 "반면"', bad, 0);
+})();
+
+section('검수 B2: 미국 자료가 빠지면 확정으로 보이지 않음');
+function synth(endDate) {
+  let a = 12345; const u = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, 1 | t); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const g = () => Math.sqrt(-2 * Math.log(u() || 1e-9)) * Math.cos(2 * Math.PI * u());
+  const days = []; for (let t = Date.parse('2016-10-17T00:00:00Z'); t <= Date.parse(endDate + 'T00:00:00Z'); t += 864e5) { const w = new Date(t).getUTCDay(); if (w && w !== 6) days.push(new Date(t).toISOString().slice(0, 10)); }
+  const P = { kospi: 2000, ewy: 60, sox: 800, ndx: 5000, vix: 15, mu: 30, usdkrw: 1150, hyg: 85, eem: 40, stoxx: 3000, tnx: 2 };
+  const S = {}; Object.keys(P).forEach(k => { S[k] = []; });
+  let prevSox = 0;
+  days.forEach(d => {
+    const sox = 0.018 * g(), ndx = 0.6 * sox + 0.008 * g();
+    const kr = 0.4 * prevSox + 0.009 * g();
+    P.kospi *= Math.exp(kr); P.sox *= Math.exp(sox); P.ndx *= Math.exp(ndx); P.ewy *= Math.exp(0.5 * sox + 0.01 * g());
+    P.mu *= Math.exp(1.2 * sox + 0.02 * g()); P.hyg *= Math.exp(0.003 * g()); P.eem *= Math.exp(0.3 * sox + 0.008 * g());
+    P.stoxx *= Math.exp(0.3 * sox + 0.008 * g()); P.usdkrw *= Math.exp(0.004 * g()); P.vix = Math.max(10, P.vix + 0.05 * (18 - P.vix) - 30 * sox + 0.5 * g()); P.tnx = Math.max(0.5, P.tnx + 0.04 * g());
+    Object.keys(P).forEach(k => S[k].push({ d, c: +P[k].toFixed(4), a: +P[k].toFixed(4) }));
+    prevSox = sox;
+  });
+  const raw = {}; Object.keys(KModel.TICKERS).forEach(k => { raw[KModel.TICKERS[k]] = { rows: S[k] }; });
+  return raw;
+}
+globalThis.KModel = KModel; globalThis.Overnight = Overnight; globalThis.Context = Context;
+const Compute = require(path.join(W, 'js/compute.js'));
+const Series = require(path.join(W, 'js/series.js'));
+const RAW = synth('2026-10-13');
+const MORNING = Date.parse('2026-10-14T08:45:00+09:00');
+const okRun = Compute.computeAll(RAW, MORNING, { fetchErrors: {} });
+eq('모든 자료가 있으면 아침 확정(overnight)', [okRun.result.mode, okRun.previewReason], ['overnight', null]);
+const failed = Compute.computeAll(RAW, MORNING, { fetchErrors: { '^SOX': 'HTTP 429' } });
+eq('^SOX 받기 실패(캐시로 채움) → 미리 보기', [failed.result.mode, failed.previewReason && failed.previewReason.code], ['mixture', 'us_fetch_failed']);
+const stale = JSON.parse(JSON.stringify(RAW));
+['^SOX', '^IXIC', 'EWY'].forEach(sy => { stale[sy].rows.pop(); });   // 어제 저장한 미국 시세(10/13 막대 없음)
+const raw0 = KModel.run(stale, { mode: 'auto', now: MORNING });
+eq('(모델 그대로라면) 미국 휴장으로 보고 확정을 냄', [raw0.mode, raw0.meta.usHoliday], ['overnight', true]);
+const staleRun = Compute.computeAll(stale, MORNING, { fetchErrors: {} });
+eq('휴장일 표에 없는 "미국 휴장" → 미리 보기', [staleRun.result.mode, staleRun.previewReason && staleRun.previewReason.code], ['mixture', 'us_unconfirmed']);
+eq('진짜 미국 휴장일(추수감사절)이면 확정 유지', Compute.previewReason({ baseDate: '2026-11-26', meta: { usHoliday: true } }, {}), null);
+eq('EWY만 실패해도 미리 보기', Compute.previewReason(null, { EWY: 'x' }).code, 'us_fetch_failed');
+eq('유럽 지표 실패는 확정 유지', Compute.previewReason(null, { '^STOXX50E': 'x' }), null);
+const vB2 = Reading.verdict(staleRun.result, { isFinal: staleRun.result.mode === 'overnight' });
+ok('미리 보기에는 맞힌 비율 숫자 없음', vB2.hitLine.indexOf('미리 보기') >= 0, vB2.hitLine);
+
+section('검수 S6: 1달치만 받아 이어 붙여도 결과가 같음');
+const TODAY = '2026-10-14';
+const merged = {}; let allSame = true;
+Object.keys(RAW).forEach(sy => {
+  const full = RAW[sy].rows, cached = { rows: full.slice(0, -8) }, fresh = { symbol: sy, rows: full.slice(-22) };
+  eq('받을 기간 ' + sy, Series.rangeFor(cached, TODAY), '1mo');
+  const m = Series.mergeIncremental(cached, fresh, TODAY);
+  if (m.rebase || JSON.stringify(m.series.rows) !== JSON.stringify(full)) allSame = false;
+  merged[sy] = m.series;
+});
+ok('이어 붙인 행 == 10년치 행 (11종목)', allSame);
+const runFull = KModel.run(RAW, { mode: 'auto', now: MORNING }), runMerged = KModel.run(merged, { mode: 'auto', now: MORNING });
+const pick = r => JSON.stringify([r.mode, r.center, r.pUp, r.ranges, r.history.slice(-5), r.stats]);
+eq('KModel.run(이어 붙인 것) == KModel.run(10년치)', pick(runMerged), pick(runFull));
+const ks = RAW['^KS11'].rows;
+const adj = Series.mergeIncremental({ rows: ks.slice(0, -10) }, { rows: ks.slice(-22).map(r => ({ d: r.d, c: r.c, a: r.a * 0.99 })) }, TODAY);
+eq('겹치는 날 수정종가 기준이 1% 바뀜 → 10년치 다시 받기', [adj.rebase, adj.reason], [true, 'adjclose']);
+const tiny = Series.mergeIncremental({ rows: ks.slice(0, -10) }, { rows: ks.slice(-22).map(r => ({ d: r.d, c: r.c, a: r.a * 1.0005 })) }, TODAY);
+eq('0.05% 차이는 그대로 이어 붙임', tiny.rebase, false);
+const gap = Series.mergeIncremental({ rows: ks.slice(0, -40) }, { rows: ks.slice(-22) }, TODAY);
+eq('사이가 비면 10년치 다시 받기', gap.rebase, true);
+eq('저장된 시세가 없거나 오래되면 10년치', [Series.rangeFor(null, TODAY), Series.rangeFor({ rows: ks.slice(0, -40) }, TODAY)], ['10y', '10y']);
+const old = Series.mergeIncremental({ rows: [{ d: '2015-01-02', c: 1, a: 1 }].concat(ks.slice(0, -10)) }, { rows: ks.slice(-22) }, TODAY);
+eq('10년보다 오래된 행은 잘라 10년치와 같은 구간', old.series.rows[0].d, ks[0].d);
+
+section('검수 S4: 2027 휴장일');
+eq('2027 설 연휴 다음 거래일', U.nextTradingDay('2027-02-05'), '2027-02-10');
+eq('2027 추석 다음 거래일', U.nextTradingDay('2027-09-13'), '2027-09-17');
+eq('2027 연말', U.nextTradingDay('2027-12-30'), '2028-01-03');
+
 section('소스 파일 문자열 전체 금지어 검사');
-['app.js', 'reading.js', 'overnight.js', 'context.js', 'holdings.js', 'content.js', 'engine.js', 'native.js'].forEach(f => {
+['app.js', 'reading.js', 'overnight.js', 'context.js', 'holdings.js', 'content.js', 'engine.js', 'native.js', 'compute.js', 'series.js'].forEach(f => {
   if (!fs.existsSync(path.join(W, 'js', f))) return;
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
-  const lits = src.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g) || [];
+  const lits = src.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) || [];
   scan('js/' + f, lits.filter(s => /[가-힣]/.test(s)));
 });
 const html = (fs.existsSync(path.join(W, 'index.html')) ? fs.readFileSync(path.join(W, 'index.html'), 'utf8') : '').replace(/<!--[\s\S]*?-->/g, '');

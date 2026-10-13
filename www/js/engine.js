@@ -3,7 +3,8 @@
   'use strict';
   var U = root.MCUtil, Store = root.Store, Native = root.Native;
   var REPO = 'hj5952009/mom-market-app';
-  var FETCH_BUDGET_MS = 30000;   // ux1 4-2: 30초 넘으면 중단
+  var FETCH_BUDGET_MS = 30000;   // ux1 4-2: 30초 넘으면 중단 (저장된 시세가 없는 첫 실행은 60초)
+  var PAYLOAD_VERSION = 2;       // 저장 결과 구조가 바뀌면 올린다(다른 값이면 무시)
 
   var params = (function () { try { return new URLSearchParams(root.location.search); } catch (e) { return { get: function () { return null; } }; } })();
   var demo = !Native.isNative || params.get('demo') === '1';
@@ -14,17 +15,17 @@
 
   // ---------------------------------------------------------------- 계산 (Worker 우선)
   var worker = null, workerBroken = false;
-  function computeOnMain(raw, now) {
+  function computeOnMain(raw, now, opts) {
     return new Promise(function (resolve, reject) {
       setTimeout(function () {   // 진행 표시가 한 번 그려지도록 양보
-        try { resolve(root.Compute.computeAll(raw, now)); } catch (e) { reject(err(e.code || 'COMPUTE_FAILED', e.message)); }
+        try { resolve(root.Compute.computeAll(raw, now, opts)); } catch (e) { reject(err(e.code || 'COMPUTE_FAILED', e.message)); }
       }, 50);
     });
   }
-  function compute(raw, now) {
-    if (workerBroken || typeof root.Worker !== 'function') return computeOnMain(raw, now);
+  function compute(raw, now, opts) {
+    if (workerBroken || typeof root.Worker !== 'function') return computeOnMain(raw, now, opts);
     return new Promise(function (resolve, reject) {
-      try { if (!worker) worker = new root.Worker('js/worker.js'); } catch (e) { workerBroken = true; return resolve(computeOnMain(raw, now)); }
+      try { if (!worker) worker = new root.Worker('js/worker.js'); } catch (e) { workerBroken = true; return resolve(computeOnMain(raw, now, opts)); }
       var done = false;
       worker.onmessage = function (e) {
         done = true;
@@ -35,54 +36,116 @@
         if (done) return; done = true;
         if (ev && ev.preventDefault) ev.preventDefault();
         workerBroken = true; try { worker.terminate(); } catch (x) { /* ignore */ } worker = null;
-        resolve(computeOnMain(raw, now));
+        resolve(computeOnMain(raw, now, opts));
       };
-      worker.postMessage({ raw: raw, now: now });
+      worker.postMessage({ raw: raw, now: now, opts: opts });
     });
   }
 
   // ---------------------------------------------------------------- 실제 갱신
   function loadLast() {
     if (demo) return loadDemo();
-    return Store.IDB.get('last').then(function (p) { return p || null; });
+    return Store.IDB.get('last').then(function (p) { return p && p.v === PAYLOAD_VERSION ? p : null; });
+  }
+
+  // 11개 지표 받기. 종목마다 받을 기간(range)이 다를 수 있다(처음 10년치, 그다음 1달치 — 검수 S6).
+  // KModel.fetchAll과 같은 방식(query1/query2 번갈아, 3번까지, 동시에 4개, 응답은 KModel.parseChart로).
+  // state.aborted가 켜지면 남은 받기를 멈추고, 그때까지 받은 것은 out에 남는다(검수 S5).
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function fetchSeries(syms, rangeOf, onOne, state) {
+    var out = {}, errors = {}, idx = 0, hosts = ['query1', 'query2'];
+    function one(sym) {
+      var attempt = 0;
+      function tryOnce() {
+        if (state.aborted) return Promise.resolve();
+        var url = 'https://' + hosts[attempt % 2] + '.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) +
+          '?range=' + rangeOf(sym) + '&interval=1d&includeAdjustedClose=true&_=' + Date.now();
+        return Native.httpGet(url, 20000).then(function (j) {
+          var sr = root.KModel.parseChart(j, sym, Date.now());
+          if (!sr.rows.length) throw new Error('empty series');
+          out[sym] = sr; onOne(sym);
+        }).catch(function (e) {
+          attempt++;
+          if (attempt >= 3 || state.aborted) { errors[sym] = String((e && e.message) || e); onOne(sym); return; }
+          return sleep(500 * attempt).then(tryOnce);
+        });
+      }
+      return tryOnce();
+    }
+    function worker() { if (idx >= syms.length || state.aborted) return Promise.resolve(); var sy = syms[idx++]; return one(sy).then(worker); }
+    var ws = []; for (var w = 0; w < Math.min(4, syms.length); w++) ws.push(worker());
+    return { out: out, errors: errors, done: Promise.all(ws) };
   }
 
   // onProgress(stage 1..3, percent 0..100, slow:boolean)
   function refresh(onProgress) {
     if (demo) return loadDemo(true);
     onProgress = onProgress || function () {};
-    var t0 = Date.now(), total = Object.keys(root.KModel.TICKERS).length, done = 0;
+    var t0 = Date.now(), T = root.KModel.TICKERS, syms = Object.keys(T).map(function (k) { return T[k]; });
+    var total = syms.length, done = 0, todayK = U.kstDate(Date.now());
     onProgress(1, 0);
     var slowTimer = setTimeout(function () { onProgress(1, Math.round(done / total * 60), true); }, 10000);
-    var get = function (url) {
-      return Native.httpGet(url, 20000).then(function (j) { done++; onProgress(1, Math.round(done / total * 60)); return j; });
-    };
-    var cachedP = Store.IDB.get('series');
-    return Native.networkStatus().then(function (online) {
+    var cached = null, ranges = {};
+    return Store.IDB.get('series').then(function (c) {
+      cached = (c && c.series) || {};
+      return Native.networkStatus();
+    }).then(function (online) {
       if (!online) throw err('OFFLINE', '인터넷 연결 없음');
-      var budget = new Promise(function (_, reject) { setTimeout(function () { reject(err('TIMEOUT', '30초 안에 시세를 받지 못함')); }, FETCH_BUDGET_MS); });
-      return Promise.race([root.KModel.fetchAll(get, { range: '10y', retries: 3, concurrency: 4, timeoutMs: 20000 }), budget]);
-    }).then(function (fresh) {
-      clearTimeout(slowTimer);
-      var fetchErrors = fresh.__errors || {};
-      return cachedP.then(function (cached) {
-        var merged = root.KModel.mergeSeries(fresh, cached && cached.series);
-        var K = merged[root.KModel.TICKERS.kospi].rows, a = K[K.length - 1], b = K[K.length - 2];
-        if (!a || !b || !(a.c > 0) || Math.abs(a.c / b.c - 1) > 0.15) throw err('BAD_DATA', '코스피 최신 종가가 이상함');
-        onProgress(2, 60);
-        var p = 60, anim = setInterval(function () { p = Math.min(95, p + 3); onProgress(2, p); }, 250);
-        var now = Date.now();
-        return compute(merged, now).then(function (out) {
-          clearInterval(anim); onProgress(3, 97);
-          var payload = {
-            v: 1, computedAt: now, out: out, fetchErrors: fetchErrors,
-            usedCached: Object.keys(fetchErrors), fetchMs: Date.now() - t0
-          };
-          return Promise.all([Store.IDB.set('last', payload), Store.IDB.set('series', { savedAt: now, series: merged })]).then(function () {
-            onProgress(3, 100); return payload;
-          });
-        }, function (e) { clearInterval(anim); throw e; });
+      syms.forEach(function (sy) { ranges[sy] = root.Series.rangeFor(cached[sy], todayK); });
+      var firstRun = syms.some(function (sy) { return ranges[sy] === root.Series.FULL_RANGE; });
+      var budget = firstRun && !cached[T.kospi] ? 60000 : FETCH_BUDGET_MS;  // 저장된 시세가 없는 첫 실행은 60초
+      var state = { aborted: false };
+      var f = fetchSeries(syms, function (sy) { return ranges[sy]; }, function () { done++; onProgress(1, Math.round(done / total * 60)); }, state);
+      var timer;
+      var timeout = new Promise(function (resolve) { timer = setTimeout(function () { state.aborted = true; resolve('timeout'); }, budget); });
+      return Promise.race([f.done.then(function () { return 'done'; }), timeout]).then(function (how) {
+        clearTimeout(timer); state.aborted = true;
+        // 받은 것만 이어 붙인다. 10년치를 다시 받아야 하는 종목(배당 조정·빈 구간)은 한 번 더.
+        var merged = {}, errors = {}, rebase = [];
+        syms.forEach(function (sy) {
+          var fr = f.out[sy];
+          if (!fr) { errors[sy] = f.errors[sy] || (how === 'timeout' ? 'timeout' : 'failed'); return; }
+          if (ranges[sy] === root.Series.FULL_RANGE) { merged[sy] = fr; return; }
+          var m = root.Series.mergeIncremental(cached[sy], fr, todayK);
+          if (m.rebase) rebase.push(sy); else merged[sy] = m.series;
+        });
+        if (!rebase.length || how === 'timeout') {
+          rebase.forEach(function (sy) { errors[sy] = 'needs full reload'; });
+          return { merged: merged, errors: errors, timedOut: how === 'timeout' };
+        }
+        var st2 = { aborted: false };
+        var g = fetchSeries(rebase, function () { return root.Series.FULL_RANGE; }, function () {}, st2);
+        var t2;
+        var to2 = new Promise(function (resolve) { t2 = setTimeout(function () { st2.aborted = true; resolve(); }, FETCH_BUDGET_MS); });
+        return Promise.race([g.done, to2]).then(function () {
+          clearTimeout(t2); st2.aborted = true;
+          rebase.forEach(function (sy) { if (g.out[sy]) merged[sy] = g.out[sy]; else errors[sy] = g.errors[sy] || 'timeout'; });
+          return { merged: merged, errors: errors, timedOut: false };
+        });
       });
+    }).then(function (got) {
+      clearTimeout(slowTimer);
+      if (!got.merged[T.kospi]) {
+        var e0 = err(got.timedOut ? 'TIMEOUT' : 'FETCH_FAILED', '코스피 시세를 받지 못함: ' + (got.errors[T.kospi] || '')); throw e0;
+      }
+      var fetchErrors = got.errors;
+      var full = root.KModel.mergeSeries(got.merged, cached);   // 못 받은 종목은 저장된 시세로
+      var K = full[T.kospi].rows, a = K[K.length - 1], b = K[K.length - 2];
+      if (!a || !b || !(a.c > 0) || Math.abs(a.c / b.c - 1) > 0.15) throw err('BAD_DATA', '코스피 최신 종가가 이상함');
+      onProgress(2, 60);
+      var p = 60, anim = setInterval(function () { p = Math.min(95, p + 3); onProgress(2, p); }, 250);
+      var now = Date.now();
+      return compute(full, now, { fetchErrors: fetchErrors }).then(function (out) {
+        clearInterval(anim); onProgress(3, 97);
+        var payload = {
+          v: PAYLOAD_VERSION, computedAt: now, out: out, fetchErrors: fetchErrors,
+          usedCached: Object.keys(fetchErrors), fetchMs: Date.now() - t0,
+          ranges: ranges
+        };
+        return Promise.all([Store.IDB.set('last', payload), Store.IDB.set('series', { savedAt: now, series: full })]).then(function () {
+          onProgress(3, 100); return payload;
+        });
+      }, function (e) { clearInterval(anim); throw e; });
     }).catch(function (e) {
       clearTimeout(slowTimer);
       if (!e.code) e.code = 'FETCH_FAILED';
@@ -174,6 +237,11 @@
       var S = {}; Object.keys(d.series.tickers).forEach(function (k) { S[k] = seriesRows(d.series.tickers[k]); });
       demoNow = params.get('now') ? Date.parse(params.get('now')) : Date.parse(result.asOf);
       var brief = null;
+      if (scenario === 'usmissing') {
+        // 체험용: 아침인데 미국 시세 받기에 실패한 경우(검수 B2) — 같은 숫자를 '미리 보기'로 보여 준다
+        if (!params.get('now')) demoNow = Date.parse('2026-10-14T08:45:00+09:00');
+        result.asOf = new Date(demoNow - 3 * 60e3).toISOString();
+      }
       if (scenario === 'morning') {
         // 체험용: 같은 예측 숫자를 '아침 확정' 상태로 보여 주고, 간밤 요약은 예시 시세로 만든다.
         if (!params.get('now')) demoNow = Date.parse('2026-10-14T08:45:00+09:00');
@@ -187,8 +255,8 @@
       var tail = function (A, n) { return A.slice(-n).map(function (r) { return { d: r.d, c: r.c }; }); };
       demoData.kospiRows = S.kospi;
       return {
-        v: 1, demo: true, scenario: scenario, computedAt: Date.parse(result.asOf), fetchErrors: {}, usedCached: [],
-        out: { result: result, brief: brief, ctx: ctx, afterBigDrop: abd, kospi2y: tail(S.kospi, 560), usdkrwTail: tail(S.usdkrw, 10), ndxTail: tail(S.ndx, 10) }
+        v: PAYLOAD_VERSION, demo: true, scenario: scenario, computedAt: Date.parse(result.asOf), fetchErrors: {}, usedCached: [],
+        out: { result: result, brief: brief, ctx: ctx, previewReason: scenario === 'usmissing' ? { code: 'us_fetch_failed', symbols: ['^SOX'] } : null, afterBigDrop: abd, kospi2y: tail(S.kospi, 560), usdkrwTail: tail(S.usdkrw, 10), ndxTail: tail(S.ndx, 10) }
       };
     });
   }

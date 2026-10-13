@@ -101,6 +101,7 @@
     return {
       P: P, r: r, now: now, todayK: tk, target: target, expired: expired,
       dayWord: Rd.dayWordOf(target, tk), baseWord: U.relDay(r.baseDate, tk), isFinal: r.mode === 'overnight',
+      previewReason: P.out.previewReason || null,
       stale: expired ? 'expired' : (S.error ? 'fallback' : 'none'),
       periodLabel: r.stats && r.stats.from ? Rd.periodLabel(r.stats.from, r.baseDate) : '지난 1년 반',
       ret1: ret(1), ret3: ret(3), ret5: ret(5)
@@ -120,7 +121,7 @@
 
     // 상태 띠 (ux1 S2·S5)
     var mins = U.kstMinutes(x.now), trading = U.isTradingDay(x.todayK);
-    if (!trading) out.push('<div class="notice-line">오늘은 주식시장이 쉬는 날이에요. 다음 장은 <b class="nw">' + U.fmtDateLong(x.target >= x.todayK ? x.target : U.nextTradingDay(x.todayK)) + '</b>이에요.</div>');
+    if (!trading) out.push('<div class="notice-line">오늘은 주식시장이 쉬는 날이에요' + (U.KRX_HOLIDAYS[x.todayK] ? '(' + U.KRX_HOLIDAYS[x.todayK] + ')' : '') + '. 다음 장은 <b class="nw">' + U.fmtDateLong(x.target >= x.todayK ? x.target : U.nextTradingDay(x.todayK)) + '</b>이에요.' + (N.isNative && U.dowOf(x.todayK) > 0 && U.dowOf(x.todayK) < 6 ? ' 아침 알림이 왔더라도 오늘은 장이 열리지 않아요.' : '') + '</div>');
     else if (x.target === x.todayK && mins >= 540 && mins < 930) out.push('<div class="notice-line">장이 열려 있어요. 이 예측은 장 시작 전 자료로 계산했고, 장중 시세로 다시 계산하지 않아요. 지금 시세는 실시간이 아니에요. 증권사 앱 시세가 더 정확해요.</div>');
 
     // 자체 점검 (stats2 4.3)
@@ -136,13 +137,13 @@
     }, gstate, x.todayK);
     if (g && !x.expired) { markGuardShown(g.id); out.push(guardHTML(g, 'home')); }
     out.push(rangeCard(x));
+    if (y && !closedToday) out.push(yesterdayCard(x, false));
     if (!x.expired) {
       if (r.mode === 'mixture' && r.scenarios && r.scenarios.length) out.push(scenarioCard(x));
       else if (P.out.brief) out.push(briefCard(x, P.out.brief));
     }
-    if (y && !closedToday) out.push(yesterdayCard(x, false));
     if (P.out.ctx) out.push(contextCard(P.out.ctx));
-    out.push(tipTeaser(x));
+    var tip = tipTeaser(x); if (tip) out.push(tip);
     out.push('<div class="footer"><p>' + (x.stale === 'none'
       ? '참고용 예보예요 · 시세 출처 Yahoo Finance · <span class="nw">' + U.fmtDateMD(U.kstDate(P.computedAt)) + ' ' + U.fmtTime(P.computedAt) + ' 기준</span>'
       : '지금 보시는 건 <span class="nw">' + U.fmtDateMD(U.kstDate(P.computedAt)) + ' ' + U.fmtTime(P.computedAt) + '</span> 자료예요. 새 자료를 받지 못했어요.') +
@@ -189,7 +190,10 @@
       '<div class="icons" role="img" aria-label="' + esc(v.iconAria) + '">' + icons + '</div>' +
       '<div class="legend"><span><span class="up-t">▲</span> 오른 날</span><span><span class="down-t">▼</span> 내린 날</span></div>' +
       '<p class="sub">' + esc(v.iconSub) + '</p>';
-    if (v.hitLine) body += '<p class="hitline">' + esc(v.hitLine) + '</p>';
+    if (x.previewReason && !x.expired) {
+      body += '<div class="notice-line" style="margin-top:10px"><b>미국 시장 자료를 아직 다 받지 못해서 미리 보기로 보여 드려요.</b> 맞힌 비율은 확정 예측에만 붙여요. 잠시 뒤 다시 계산해 볼게요.' +
+        '<div style="margin-top:8px"><button type="button" class="btn2" data-act="refreshForce">지금 다시 계산</button></div></div>';
+    } else if (v.hitLine) body += '<p class="hitline">' + esc(v.hitLine) + '</p>';
     if (!x.expired && x.isFinal) body += '<p class="sub">이 예측은 밤사이 미국 장 결과까지 넣어 계산했고, 하루 동안 바뀌지 않아요.</p>';
     body += '<div class="linkrow"><button type="button" class="textbtn" data-act="push" data-page="trust">이 예측은 얼마나 믿을 만한가요? ›</button></div></section>';
     return body;
@@ -201,8 +205,8 @@
     var lo95 = cl(g.lo95), hi95 = cl(g.hi95), lo80 = cl(g.lo80), hi80 = cl(g.hi80), c = cl(g.center), split = Math.min(Math.max(50, lo80), hi80);
     var dn = split > lo80 ? '<i class="b80dn' + (split >= hi80 ? ' solo' : '') + '" style="left:' + lo80 + '%;width:' + (split - lo80) + '%"></i>' : '';
     var up = hi80 > split ? '<i class="b80up' + (split <= lo80 ? ' solo' : '') + '" style="left:' + split + '%;width:' + (hi80 - split) + '%"></i>' : '';
-    var ctxLine = rv.noteLine || rv.wideLine || [rv.volExplain, rv.volCompare].filter(Boolean).join(' ');
-    return '<section class="card" id="rangeCard" aria-labelledby="rh"><div class="rangehead"><h2 id="rh">' + esc(dayTitle(x)) + ' 마감은 어디쯤일까요?</h2>' +
+    var ctxLine = x.expired ? null : (rv.noteLine || rv.wideLine || [rv.volExplain, rv.volCompare].filter(Boolean).join(' '));
+    return '<section class="card' + (x.expired ? ' expired-card' : '') + '" id="rangeCard" aria-labelledby="rh"><div class="rangehead"><h2 id="rh">' + (x.expired ? '지난 예측: ' + esc(dayTitle(x)) + ' 범위' : esc(dayTitle(x)) + ' 마감은 어디쯤일까요?') + '</h2>' +
       '<span class="chip vol">' + rv.volBadge + '</span></div>' +
       (rv.scaleNote ? '<p class="scalenote">' + rv.scaleNote + '</p>' : '') +
       '<div class="rangeviz" id="rangeviz" role="img" aria-label="' + esc(rv.aria) + '">' +
@@ -233,22 +237,40 @@
     sp[0].style.left = L[0] + 'px'; sp[1].style.left = L[1] + 'px';
   }
 
+  // 접는 카드 (검수 N1: 홈 첫 화면에 판단·범위·어제 결과가 먼저 보이게, 나머지는 기본 접힘)
+  function foldHead(id, title, summary, level) {
+    var open = !!S.openRows['f:' + id];
+    return {
+      open: open,
+      html: '<button type="button" class="foldhead" data-act="toggle" data-key="f:' + id + '" aria-expanded="' + open + '"><span class="fh-t' + (level === 'small' ? ' small' : '') + '">' + title + '</span><span class="fh-x">' + (open ? '접기 ▴' : '펼치기 ▾') + '</span></button>' +
+        (!open && summary ? '<p class="fh-s">' + summary + '</p>' : '')
+    };
+  }
+
   function scenarioCard(x) {
-    var rows = Rd.scenarioRows(x.r);
-    return '<section class="card" aria-labelledby="sch"><div class="chips" style="margin-bottom:8px"><span class="chip warn">아직 확정 아님</span></div>' +
-      '<h2 class="ct" id="sch">오늘 밤 ' + T('sox', '미국 반도체(SOX)') + '에 따라 달라져요</h2>' +
-      '<p class="sub" style="margin-top:0">미국 장은 우리 시간 새벽에 끝나요. 그 결과에 따라 ' + esc(dayTitle(x)) + ' 범위가 이렇게 달라졌어요.</p>' +
+    var rows = Rd.scenarioRows(x.r), ups = rows.filter(function (s) { return !s.empty; }).map(function (s) { return s.upPct; });
+    var mins = U.kstMinutes(x.now);
+    var title = x.previewReason ? '간밤 미국 반도체(SOX) 결과에 따라 달라져요'
+      : mins < 420 ? '지금 열려 있는 미국 장의 반도체(SOX)에 따라 달라져요' : '오늘 밤 미국 반도체(SOX)에 따라 달라져요';
+    var sub = x.previewReason ? '간밤 미국 장 결과를 아직 받지 못해서, 미국 반도체가 어땠느냐에 따라 ' + esc(dayTitle(x)) + ' 범위가 이렇게 달라졌어요.'
+      : '미국 장은 우리 시간 새벽에 끝나요. 그 결과에 따라 ' + esc(dayTitle(x)) + ' 범위가 이렇게 달라졌어요.';
+    var f = foldHead('scen', esc(title), ups.length ? '미국 반도체 결과에 따라 오를 확률 ' + Math.min.apply(null, ups) + '%~' + Math.max.apply(null, ups) + '%로 달라져요.' : '');
+    return '<section class="card" aria-label="' + esc(title) + '"><div class="chips" style="margin-bottom:8px"><span class="chip warn">아직 확정 아님</span></div>' + f.html +
+      (f.open ? '<p class="sub" style="margin-top:4px">' + sub + ' ' + T('sox', 'SOX란?') + '</p>' +
       '<ul class="scen">' + rows.map(function (s) {
         return '<li><span class="when"><span class="arrow" aria-hidden="true">' + s.arrow + '</span>' + s.text + ' <small>(' + s.range + ')</small></span>' +
           '<span class="what">' + (s.empty ? '<span class="muted">비슷한 날이 없었어요</span>' : '오를 확률 ' + s.upPct + '%<br><span class="nw">대부분 ' + s.lo80 + '~' + s.hi80 + '</span>') + '</span></li>';
-      }).join('') + '</ul><p class="sub">미리 계산해 둔 참고 숫자예요. 아침에 앱을 열면 실제 미국 장 결과로 다시 계산해요.</p></section>';
+      }).join('') + '</ul><p class="sub">미리 계산해 둔 참고 숫자예요. 미국 장 결과가 들어온 뒤 앱을 열면 다시 계산해요.</p>' : '') + '</section>';
   }
 
   function briefCard(x, b) {
     var items = b.items.filter(function (i) { return i.main || S.briefMore; });
     var hdr = b.usDate ? '<p class="sub" style="margin-top:0">' + U.fmtDateMD(b.cutoff) + ' 아침 기준 (미국 ' + U.fmtDateMD(b.usDate) + ' 장 마감)</p>' : '';
-    return '<section class="card" aria-labelledby="bh"><h2 class="ct" id="bh">밤사이 세계 시장</h2>' + hdr +
-      '<div class="sentences">' + b.sentences.map(function (s) { return '<p>' + esc(s) + '</p>'; }).join('') + '</div>' +
+    var lead = b.sentences.filter(function (t) { return t.indexOf('오늘은 한국 시장이 쉬는') !== 0; })[0] || b.sentences[0];
+    var f = foldHead('brief', '밤사이 세계 시장', esc(lead));
+    if (!f.open) return '<section class="card" aria-label="밤사이 세계 시장">' + f.html + '</section>';
+    return '<section class="card" aria-label="밤사이 세계 시장">' + f.html + hdr +
+      '<div class="sentences">' + b.sentences.map(function (t) { return '<p>' + esc(t) + '</p>'; }).join('') + '</div>' +
       '<ul class="brief">' + items.map(function (it) {
         var open = S.openRows['b:' + it.key];
         var val = it.direction === 'none' ? '<span class="val c-gray">' + esc(it.changeText) + '</span>'
@@ -270,12 +292,15 @@
     var word = U.relDay(y.date, x.todayK);
     var title = (word === '오늘' || word === '어제' ? word + '(' + (+y.date.slice(5, 7)) + '/' + (+y.date.slice(8, 10)) + ')' : '지난 장(' + U.fmtDateMD(y.date) + ')') + ' 예상은 맞았나요?';
     var rs = Rd.recentSummary(x.r.history);
-    return '<section class="card" aria-labelledby="yh"><h2 class="ct" id="yh">' + esc(title) + '</h2>' +
+    var open = !!S.openRows['f:yday'];
+    return '<section class="card" aria-labelledby="yh"><h2 class="ct" id="yh" style="font-size:var(--fs-body)">' + esc(title) + '</h2>' +
       '<p class="verdict-sym ' + cls + '"><span class="sym" aria-hidden="true">' + sym + '</span>' + esc(yc.big) + '</p>' +
-      '<p style="margin-top:8px">' + esc(yc.small) + '</p>' + (yc.dirLine ? '<p style="margin-top:6px">' + esc(yc.dirLine) + '</p>' : '') +
-      (rs ? '<p class="sub">최근 20번: 대부분 범위 안 ' + rs.k80 + '번, 넓은 범위 안 ' + rs.k95 + '번 (평소 기대: 16번, 19번)</p>' : '') +
-      (first ? '<p class="sub">' + U.fmtDateLong(x.target) + ' 예측은 아래에 있어요.</p>' : '') +
-      '<div class="linkrow"><button type="button" class="textbtn" data-act="tab" data-tab="record">성적표 보기 ›</button></div></section>';
+      '<p style="margin-top:6px">실제 마감 <b class="nw">' + U.fmtInt(y.actual) + '</b> · 넓은 범위 <span class="nw">' + U.fmtInt(y.lo95) + '~' + U.fmtInt(y.hi95) + '</span></p>' +
+      (open ? '<p style="margin-top:8px">' + esc(yc.small) + '</p>' + (yc.dirLine ? '<p style="margin-top:6px">' + esc(yc.dirLine) + '</p>' : '') +
+        (rs ? '<p class="sub">최근 20번: 대부분 범위 안 ' + rs.k80 + '번, 넓은 범위 안 ' + rs.k95 + '번 (평소 기대: 16번, 19번)</p>' : '') : '') +
+      (first ? '<p class="sub">' + U.fmtDateLong(x.target) + ' 예측은 바로 아래에 있어요.</p>' : '') +
+      '<div class="linkrow"><button type="button" class="textbtn small" data-act="toggle" data-key="f:yday" aria-expanded="' + open + '">' + (open ? '접기' : '자세히') + '</button>' +
+      '<button type="button" class="textbtn small" data-act="tab" data-tab="record">성적표 보기 ›</button></div></section>';
   }
 
   function contextCard(c) {
@@ -283,7 +308,9 @@
     if (!lockIn || JSON.stringify(L.lock) !== JSON.stringify(lockIn)) LS.set('ctxHeadline', L.lock);
     var rows = CX.rows(c);
     var stale = U.dayDiff(c.kospi.D, todayK()) > 5;
-    return '<section class="card" aria-labelledby="cxh"><h2 class="ct" id="cxh">요즘 시장 이야기 <span class="muted nw" style="font-weight:400">' + U.fmtDateLong(c.kospi.D) + ' 기준</span></h2>' +
+    var f = foldHead('ctx', '요즘 시장 이야기 <span class="muted nw" style="font-weight:400">' + U.fmtDateLong(c.kospi.D) + ' 기준</span>', esc(L.headline.text));
+    if (!f.open) return '<section class="card" aria-label="요즘 시장 이야기">' + f.html + '</section>';
+    return '<section class="card" aria-label="요즘 시장 이야기">' + f.html +
       (stale ? '<p class="notice-line" style="margin-bottom:8px">' + U.fmtDateMD(c.kospi.D) + ' 자료 기준이에요(최근 자료를 아직 못 받았어요).</p>' : '') +
       '<p class="ctx-head">' + esc(L.headline.text) + '</p>' + (L.headline.sub ? '<p class="sub">' + esc(L.headline.sub) + '</p>' : '') +
       (L.locked ? '<p class="sub">' + U.fmtDateMD(L.lockedDate) + ' 기준 문장이에요. 아래 숫자는 최신이에요.</p>' : '') +
@@ -300,6 +327,11 @@
   function tipTeaser(x) {
     var shown = LS.get('tips.lastShown', {}), inst = LS.get('installDate', x.todayK);
     var id = CX.pickTip(S.payload.out.ctx, x.todayK, U.dayDiff(inst, x.todayK) < 7, shown);
+    // 검수 S8: '크게 빠진 다음 날' 글은 홈의 '오를 쪽' 판단과 같은 화면에 두지 않는다(더보기 › 경제 상식에서만).
+    if (id === 'tip_after_big_drop') {
+      var order = ['tip_overnight_us', 'tip_semiconductor', 'tip_points_vs_percent', 'tip_fx_foreigners'];
+      id = order[+CX.isoWeekKey(x.todayK).slice(-2) % order.length];
+    }
     if (shown[id] !== x.todayK) { shown[id] = x.todayK; LS.set('tips.lastShown', shown); }
     var tip = CT.TIPS.filter(function (t) { return t.id === id; })[0];
     return '<button type="button" class="card tipcard press" data-act="push" data-page="tip" data-id="' + tip.id + '">' + I.bulb.replace('class="ri"', '') +
@@ -462,7 +494,7 @@
     out.push('<section class="card"><h2 class="ct">넣어 두신 금액 (몰라도 돼요)</h2><p>' + (item.amountWon ? '<b>' + U.fmtInt(Math.round(item.amountWon / 10000)) + '만 원</b>' : '적지 않았어요') + '</p>' +
       '<p class="sub">폰 안에만 저장돼요.</p><div class="linkrow"><button type="button" class="textbtn" data-act="amountEdit" data-id="' + idx + '">고치기</button></div></section>');
     out.push('<button type="button" class="btn2 wide danger" data-act="removeAsk" data-id="' + idx + '">이 종목 빼기</button>');
-    if (P_demo()) out.push('<p class="demo-band">체험용 예시 시세예요.</p>');
+    if (P_demo()) out.unshift('<p class="demo-band">체험용 예시 시세예요.</p>');
     return { title: item.name, back: true, body: out.join('') };
   }
   function P_demo() { return S.payload && S.payload.demo; }
@@ -547,7 +579,7 @@
     if (!P) return { title: '성적표', body: '<section class="card empty"><p>계산이 끝나면 성적표를 보여 드려요.</p></section>' };
     var x = info(), r = x.r, rs = Rd.recordStats(r), out = [];
     var days = LS.get('screen.record.openDays', []); if (days.indexOf(x.todayK) < 0) { days.push(x.todayK); LS.set('screen.record.openDays', days.slice(-14)); }
-    out.push('<p class="dateline">' + (rs.firstDate ? U.fmtDateFull(rs.firstDate).replace(/ \(.\)$/, '') : '2025년 1월') + '부터 ' + U.fmtDateMD(r.baseDate) + '까지 ' + rs.N + '거래일</p>');
+    out.push('<p class="dateline">' + (rs.firstDate ? U.fmtDateFull(rs.firstDate).replace(/ \(.\)$/, '') : '2025년 1월') + '부터 ' + U.fmtDateFull(r.baseDate).replace(/ \(.\)$/, '') + '까지 ' + rs.N + '거래일</p>');
     out.push('<h2 class="headline" style="margin:0">이렇게 맞혔어요</h2><p class="sub" style="margin-top:-8px">예측이 실제로 얼마나 맞았는지 숨김없이 보여 드려요.</p>');
     var g = Rd.guardRecord(r, LS.get('guard', {}), x.todayK, days);
     if (g) { markGuardShown(g.id); out.push(guardHTML(g, 'record')); }
@@ -757,7 +789,7 @@
     else if (S.netBack) html = '<div class="band info"><span class="bt">다시 연결됐어요.</span><button type="button" class="btn2" data-act="retry">새로 계산</button></div>';
     else if (S.error && P) {
       var off = S.error.code === 'OFFLINE';
-      html = '<div class="band"><svg viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="2.2" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.1" stroke-linecap="round"/></svg><span class="bt">' +
+      html = '<div class="band"><svg viewBox="0 0 24 24" fill="none" stroke="#5C5C5C" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.7 16a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19.3" r="1.2" fill="#5C5C5C"/></svg><span class="bt">' +
         (off ? '인터넷에 연결되지 않아 <b class="nw">' + U.fmtDateMD(U.kstDate(P.computedAt)) + ' ' + U.fmtTime(P.computedAt) + '</b>에 계산한 결과를 보여 드려요.' : '시세 자료를 가져오지 못했어요. 잠시 뒤 다시 해 볼게요. 지금은 저장된 결과예요.') +
         '</span><button type="button" class="btn2" data-act="retry">다시 시도</button></div>';
     } else if (P && P.usedCached && P.usedCached.length && !P.demo) html = '<div class="band grey"><span class="bt">일부 해외 시세(' + P.usedCached.length + '개)를 받지 못해 저장해 둔 값으로 계산했어요.</span></div>';
@@ -833,16 +865,18 @@
   }
 
   // ------------------------------------------------------------------ 갱신
-  var retryTimer = null;
+  var retryTimer = null, previewRetry = null;
   function refresh(manual) {
     if (S.loading) return;
     var P = S.payload;
-    if (manual && P && !S.error && !E.demo && Date.now() - P.computedAt < 10 * 60e3) { toast('방금 계산한 결과예요 (' + U.fmtTime(P.computedAt) + ')'); return; }
+    if (manual && P && !S.error && !E.demo && !(P.out && P.out.previewReason) && Date.now() - P.computedAt < 10 * 60e3) { toast('방금 계산한 결과예요 (' + U.fmtTime(P.computedAt) + ')'); return; }
     S.loading = { stage: 1, pct: 0, slow: false }; S.error = null; S.netBack = false;
     if (!P) render(); else renderStrip();
     E.refresh(function (stage, pct, slow) { if (!S.loading) return; S.loading.stage = stage; S.loading.pct = pct; if (slow) S.loading.slow = true; updateProgress(); })
       .then(function (p) {
         var had = !!S.payload; S.payload = p; S.loading = null; S.statsMemo = {};
+        // 검수 B2: 미국 자료가 덜 들어와 미리 보기로 계산했으면 10분 뒤 한 번 더 받아 본다
+        if (p.out && p.out.previewReason && !E.demo && !previewRetry) previewRetry = setTimeout(function () { previewRetry = null; refresh(false); }, 10 * 60e3);
         if (had && !E.demo) { S.flash = true; S.doneBand = true; setTimeout(function () { S.doneBand = false; renderStrip(); }, 1500); }
         render();
       }, function (e) {
@@ -913,9 +947,10 @@
       body = '<div style="display:flex;justify-content:center">' + I.compass.replace('viewBox', 'width="56" height="56" viewBox') + '</div><h2>' + esc(CT.NOTICE_TITLE) + '</h2><p>' + esc(CT.NOTICE_LEAD) + '</p><ul>' +
         CT.NOTICE_POINTS.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' +
         '<p>지난 ' + N0 + '일 중 ' + M0 + '일은 넓은 범위를 벗어났어요. 한 달에 한 번쯤은 벗어나요.</p><p class="muted" style="margin-top:8px">궁금하면 언제든 더보기 › 안내에서 다시 볼 수 있어요.</p>' +
-        '<div style="margin-top:16px"><button type="button" class="check" data-act="obCheck" role="checkbox" aria-checked="' + o.checked + '"><span class="box" aria-hidden="true">' + (o.checked ? '✓' : '') + '</span>네, 참고용이라는 걸 이해했어요</button></div>' +
         '<button type="button" class="row" style="border:0;padding:12px 0" data-act="obNotif" role="switch" aria-checked="' + o.notif + '">' + I.bell + '<span class="rt">평일 아침 ' + U.fmtHM(S.settings.notif.time) + '에 알려 드릴게요</span>' + sw(o.notif) + '</button>';
-      foot = dots + (o.checked ? '' : '<p class="muted" style="text-align:center">글을 읽고 \'네, 참고용이라는 걸 이해했어요\' 칸을 눌러 주세요</p>') + '<button type="button" class="btn" data-act="obStart"' + (o.checked ? '' : ' disabled') + '>시작하기</button>';
+      // 검수 S2: 동의 칸은 '시작하기' 바로 위 고정 영역에 둬서 글씨가 커도 스크롤 없이 보인다.
+      foot = '<button type="button" class="check" data-act="obCheck" role="checkbox" aria-checked="' + o.checked + '"><span class="box" aria-hidden="true">' + (o.checked ? '✓' : '') + '</span>네, 참고용이라는 걸 이해했어요</button>' +
+        '<button type="button" class="btn" data-act="obStart"' + (o.checked ? '' : ' disabled') + '>' + (o.checked ? '시작하기' : '위 칸을 누르면 시작할 수 있어요') + '</button>';
     }
     el.innerHTML = top + '<div class="ob-body" id="obBody">' + body + '</div><div class="ob-foot">' + foot + '</div>';
   }
@@ -939,6 +974,7 @@
       case 'back': back(); break;
       case 'push': if (d.page === 'worry') S.worryPage = 0; push(d.page, { id: d.id }); break;
       case 'refresh': refresh(true); break;
+      case 'refreshForce': refresh(false); break;
       case 'retry': S.netBack = false; refresh(false); break;
       case 'term': termSheet(d.id); break;
       case 'termMore': closeSheet(); push('term', { id: d.id }); break;
