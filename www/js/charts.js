@@ -628,7 +628,67 @@
     });
   }
 
+  /* 성상현 페이지: 주제 × 달 글 수 히트맵. d: {rows:[{name, values}], months:['2024-03',...]} */
+  function ymLab(ym) { return ym.slice(0, 4) + '년 ' + (+ym.slice(5, 7)) + '월'; }
+  function heat(el, d) {
+    var rows = d.rows, M = d.months;
+    mount(el, '주제별 글 수 흐름', function (w, F) {
+      var labW = Math.max.apply(null, rows.map(function (r) { return tw(r.name, F); })) + 8;
+      var gw = (w - labW) / M.length, rh = Math.max(F * 1.45, 20), axisH = F * 1.7, h = rows.length * rh + axisH, s = '';
+      var max = 1; rows.forEach(function (r) { r.values.forEach(function (v) { if (v > max) max = v; }); });
+      rows.forEach(function (r, i) {
+        var y = i * rh;
+        s += T(0, y + rh / 2 + F * 0.35, r.name, F, 'c-lab', 'start');
+        r.values.forEach(function (v, j) {
+          var op = v ? 0.15 + 0.85 * Math.sqrt(v / max) : 0;
+          s += '<rect x="' + n1(labW + j * gw + 0.5) + '" y="' + n1(y + 2) + '" width="' + n1(Math.max(1, gw - 1)) + '" height="' + n1(rh - 4) + '" rx="2" class="' + (v ? 'b1' : 'c-empty') + '"' + (v ? ' fill-opacity="' + op.toFixed(2) + '"' : '') + '/>';
+        });
+      });
+      var lastR = -1e9, yw = tw('0000', F);
+      M.forEach(function (m, j) {   // 해마다 1월에 연도 (겹치면 건너뜀)
+        if (m.slice(5) !== '01' && j !== 0) return;
+        var x0 = labW + j * gw; if (x0 < lastR + 6 || x0 + yw > w) return;
+        s += T(x0, h - F * 0.35, m.slice(0, 4), F, 'c-txt num', 'start'); lastR = x0 + yw;
+      });
+      return {
+        h: h, svg: s, stops: rows.map(function (r, i) { return [labW + (M.length - 1) * gw, i * rh + rh / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(rows.length - 1, Math.floor(py / rh))), j = Math.max(0, Math.min(M.length - 1, Math.floor((px - labW) / gw)));
+          return { band: { x: labW + j * gw, y: i * rh, w: gw, h: rh }, ax: labW + (j + 0.5) * gw, ay: i * rh,
+            title: rows[i].name + ' · ' + ymLab(M[j]), rows: [{ k: '--band-1', label: '개 글', value: String(rows[i].values[j]) }] };
+        }
+      };
+    });
+  }
+  /* 한 주제의 달별 글 수 막대. d: {values, months, name} */
+  function monthBars(el, d) {
+    var V = d.values, M = d.months;
+    mount(el, d.name + ' 달별 글 수', function (w, F) {
+      var axisH = F * 1.7, ch = 70, h = ch + axisH, gw = w / M.length, max = Math.max.apply(null, V.concat([1])), s = '';
+      s += L(0, ch, w, ch, 'c-axis');
+      V.forEach(function (v, j) {
+        if (!v) return;
+        var bh = Math.max(2, v / max * (ch - 6));
+        s += '<rect x="' + n1(j * gw + gw * 0.15) + '" y="' + n1(ch - bh) + '" width="' + n1(Math.max(1, gw * 0.7)) + '" height="' + n1(bh) + '" rx="1.5" class="b1"/>';
+      });
+      var lastR = -1e9, yw = tw('0000', F);
+      M.forEach(function (m, j) {
+        if (m.slice(5) !== '01' && j !== 0) return;
+        var x0 = j * gw; if (x0 < lastR + 6 || x0 + yw > w) return;
+        s += T(x0, h - F * 0.35, m.slice(0, 4), F, 'c-txt num', 'start'); lastR = x0 + yw;
+      });
+      return {
+        h: h, svg: s, stops: [[w - gw / 2, ch / 2]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(M.length - 1, Math.floor(px / gw)));
+          return { band: { x: j * gw, y: 0, w: gw, h: ch }, ax: (j + 0.5) * gw, ay: 0, title: ymLab(M[j]), rows: [{ k: '--band-1', label: '개 글', value: String(V[j]) }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
+    heat: heat, monthBars: monthBars,
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
     bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,
     redrawAll: redrawAll, reset: reset, _tw: tw, _niceTicks: niceTicks

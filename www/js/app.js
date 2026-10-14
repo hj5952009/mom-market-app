@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.2.0';
+  var APP_VERSION = '2.3.0 베타';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -20,6 +20,7 @@
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.5h.01M12 14.5h.01M16 14.5h.01" stroke-width="2.6"/></svg>',
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+    sung: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
   };
 
@@ -386,7 +387,14 @@
   }
 
   // ------------------------------------------------------------------ 그리기
-  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, info: pageInfo };
+  // 성상현 페이지(js/sung.js)에 넘기는 도구
+  var H = {
+    card: card, head: head, chartBox: chartBox, $: $, Ch: Ch, setBar: setBar,
+    render: function () { render(); }, keep: function () { keepScroll(); }, openUrl: function (u) { N.openUrl(u); },
+    get payload() { return S.payload; }
+  };
+  function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
+  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, info: pageInfo };
   function render() {
     Ch.reset();
     var pg = PAGES[S.tab]();
@@ -489,6 +497,7 @@
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
     var d = el.dataset;
+    if (/^sg/.test(d.act) && window.SungPage && window.SungPage.onAct(d.act, d, H)) return;
     switch (d.act) {
       case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
       case 'refresh': refresh(true); break;
@@ -511,7 +520,11 @@
       case 'calall': S.cal.allMonths = !S.cal.allMonths; keepScroll(); break;
     }
   });
+  document.addEventListener('input', function (e) {
+    if (e.target && /^sg/.test(e.target.id || '') && e.target.type === 'search' && window.SungPage) window.SungPage.onInput(e, H);
+  });
   document.addEventListener('change', function (e) {
+    if (e.target && /^sg/.test(e.target.id || '') && e.target.type !== 'search' && window.SungPage && window.SungPage.onInput(e, H)) return;
     if (e.target.id === 'notifTime') { S.settings.notif.time = e.target.value; saveSettings(); applyNotif(); toast(U.fmtHM(e.target.value) + '에 알려 드릴게요'); }
   });
   N.onBack(function () {
@@ -531,12 +544,13 @@
     var qs = D.params;
     if (qs.get('scale')) S.sysScale = +qs.get('scale');
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
     Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
       S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
+      if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;
       if (/^(1m|3m|all)$/.test(qs.get('period') || '')) S.period = qs.get('period');

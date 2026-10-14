@@ -232,6 +232,28 @@ section('자료 신선도 점검');
   eq('2026년 코스피 휴장일 (실제 일봉에서 빠진 평일)', ['2026-07-17', '2026-09-24', '2026-10-09'].map(d => U.isTradingDay(d)), [false, false, false]);
 }
 
+
+section('성상현 페이지 자료');
+{
+  const SG = JSON.parse(fs.readFileSync(path.join(W, 'data/sung.json'), 'utf8'));
+  const ids = new Set(SG.posts.map(p => p.id));
+  eq('분석한 글 수', SG.posts.length, SG.source.analyzed);
+  ok('모든 글에 요약·한 줄', SG.posts.every(p => p.s && p.o && p.th.length));
+  const refIds = [].concat(...SG.now.map(x => x.ids), ...SG.frame.map(x => x.ids), ...SG.eras.map(x => x.ids), SG.outlooks,
+    ...SG.themes.map(t => t.best.concat(...t.shifts.map(x => x.ids))), ...SG.principles.map(x => x.ids));
+  ok('연결된 글이 모두 있음', refIds.every(i => ids.has(i)), refIds.filter(i => !ids.has(i)));
+  eq('주제 16개, 달별 글 수 길이', [SG.themes.length, SG.themes.every(t => t.monthly.length === SG.months.length)], [16, true]);
+  const ours = [];
+  SG.posts.forEach(p => ours.push(p.o, p.s, p.v, p.p));
+  SG.now.concat(SG.frame, SG.eras).forEach(x => ours.push(x.title, x.text));
+  SG.themes.forEach(t => { ours.push(t.headline, t.plain, t.core, t.now); t.shifts.forEach(x => ours.push(x.text)); });
+  SG.principles.forEach(x => ours.push(x.title, x.text)); SG.terms.forEach(x => ours.push(x.plain));
+  const DIRECT = /사세요|파세요|매수하세요|매도하세요|팔아라|추천|사라[.!]|사라$/;
+  const hits = ours.filter(t => t && DIRECT.test(t));
+  ok('앱이 쓴 요약에 매수·매도 지시·추천 표현 없음', hits.length === 0, hits.slice(0, 3));
+  ok('본문(원문)은 담지 않음', !SG.posts.some(p => 'text' in p || 'content' in p));
+}
+
 section('예측 달력');
 {
   const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
@@ -258,14 +280,14 @@ eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rat
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.2.0', /versionName "2\.2\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.3.0', /versionName "2\.3\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

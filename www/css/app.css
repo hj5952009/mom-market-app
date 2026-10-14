@@ -222,7 +222,7 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 /* ---------- 하단 탭 ---------- */
 .tabs{
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--card); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom);
+  display: grid; grid-template-columns: repeat(5, 1fr); padding-bottom: env(safe-area-inset-bottom);
 }
 .tabs button{
   min-height: var(--tabbar); border: 0; background: transparent; color: var(--muted); font-size: .875rem; font-weight: 600;
@@ -319,3 +319,77 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .fs{ font-weight: 700; white-space: nowrap; }
 .fs.fresh{ color: #2E9E6A; } .fs.lag1{ color: #B8860B; } .fs.late, .fs.cached{ color: var(--up); }
 @media (prefers-color-scheme: dark){ .fs.fresh{ color: #4CC38A; } .ok .fdot{ background: #4CC38A; } .fs.lag1{ color: #E2B53E; } }
+
+/* ---------- 성상현 페이지 ---------- */
+.c-empty{ fill: var(--grid); }
+.sgnav{ display: flex; margin: 0 0 12px; }
+.sgnav button{ flex: 1 1 0; }
+.sghead b{ font-size: 1.0625rem; }
+.sghead .sub{ margin-top: 6px; }
+.sgnow{ display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.sgnow:first-of-type{ border-top: 0; padding-top: 10px; }
+.sgn-i{ flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--cal-80); color: var(--ink); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: .9375rem; }
+.sgnow h3, .sgframe h3, .sgtl h3, .sgprin h3{ font-size: 1rem; font-weight: 700; line-height: 1.4; }
+.sgnow p, .sgframe p, .sgtl p, .sgprin p{ color: var(--ink-2); font-size: .9375rem; margin-top: 4px; }
+.srefs{ display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.sref{ text-align: left; border: 0; background: var(--shade); border-radius: 8px; padding: 6px 10px; font-size: .8125rem; color: var(--ink-2); line-height: 1.4; }
+.sref span{ color: var(--band-1); font-weight: 700; margin-right: 6px; }
+.sgwatch{ list-style: none; margin: 8px 0 0; padding: 0; }
+.sgwatch li{ display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.sgwatch li:first-child{ border-top: 0; }
+.sgwatch small{ display: block; color: var(--muted); font-size: .8125rem; }
+.sgv{ text-align: right; flex: none; }
+.sgv b{ font-weight: 700; display: block; }
+.sgv small:first-child{ font-size: .75rem; }
+.sgv small.up-t{ color: var(--up); } .sgv small.down-t{ color: var(--down); }
+.sgtl{ list-style: none; margin: 8px 0 0; padding: 0 0 0 18px; position: relative; }
+.sgtl::before{ content: ""; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.sgtl li{ position: relative; padding: 0 0 18px; }
+.sgtl li::before{ content: ""; position: absolute; left: -18px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); border: 2px solid var(--card); }
+.sgtl li.tp::before{ background: var(--up); } .sgtl li.tn::before{ background: var(--down); }
+.sgtl-d{ font-size: .8125rem; color: var(--muted); font-weight: 600; }
+.sgframe{ padding: 12px 0; border-top: 1px solid var(--line); }
+.sgframe:first-of-type{ border-top: 0; }
+.splist{ list-style: none; margin: 8px 0 0; padding: 0; }
+.sp{ border-top: 1px solid var(--line); }
+.sp:first-child{ border-top: 0; }
+.sp-h{ display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 12px 0; color: var(--ink); }
+.sp-m{ display: block; font-size: .8125rem; color: var(--muted); }
+.sp-star{ color: var(--band-1); }
+.sp-t{ display: block; font-weight: 700; line-height: 1.45; margin-top: 2px; }
+.sp-tt{ display: block; font-size: .8125rem; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.sp-b{ padding: 0 0 14px; }
+.sp-b p{ font-size: .9375rem; color: var(--ink-2); }
+.sp-v{ margin-top: 8px; } .sp-v b{ color: var(--ink); margin-right: 4px; }
+.sp-tags{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tag{ border: 0; font-size: .8125rem; padding: 3px 10px; border-radius: 999px; background: var(--chip-bg); color: var(--ink-2); }
+.sp-act{ display: flex; gap: 8px; margin-top: 10px; }
+.sp-act .btn{ flex: 1 1 0; }
+.sgchips{ display: flex; flex-wrap: wrap; gap: 6px; }
+.chipbtn{ border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: .875rem; font-weight: 600; color: var(--ink-2); min-height: 36px; }
+.chipbtn span{ color: var(--muted); font-weight: 500; margin-left: 2px; }
+.chipbtn[aria-pressed="true"]{ background: var(--band-1); border-color: var(--band-1); color: var(--on-accent); }
+.chipbtn[aria-pressed="true"] span{ color: inherit; opacity: .8; }
+.sgk{ font-size: .8125rem; color: var(--muted); font-weight: 600; }
+.sgtitle{ font-size: 1.25rem; font-weight: 700; line-height: 1.4; margin-top: 4px; }
+.sgbox{ background: var(--shade); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+.sgbox b{ font-size: .875rem; } .sgbox p{ font-size: .9375rem; color: var(--ink-2); margin-top: 4px; }
+.sgh3{ font-size: .9375rem; font-weight: 700; margin-top: 16px; }
+.sgp{ color: var(--ink-2); font-size: .9375rem; margin-top: 4px; }
+.sgdots{ margin: 6px 0 0; padding-left: 1.1em; color: var(--ink-2); font-size: .9375rem; }
+.sglives{ margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.sglives small{ color: var(--muted); font-size: .8125rem; }
+.sglive{ font-size: .9375rem; } .sglive small{ font-weight: 600; }
+.sgfilter input[type=search], .sginput{ width: 100%; min-height: 44px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 1rem; }
+.sginput{ margin-top: 10px; }
+.sgsel{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.sgsel select{ width: 100%; font-size: .875rem; min-width: 0; }
+.sgfav{ display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: .9375rem; color: var(--ink-2); }
+.sgfav input{ width: 20px; height: 20px; }
+.sgprin{ margin: 8px 0 0; padding-left: 1.4em; }
+.sgprin li{ padding: 10px 0; border-top: 1px solid var(--line); }
+.sgprin li:first-child{ border-top: 0; }
+.sgprin li::marker{ font-weight: 700; color: var(--band-1); }
+.sgterms{ margin: 6px 0 0; }
+.sgterms div{ padding: 8px 0; border-top: 1px solid var(--line); }
+.sgterms dt{ font-weight: 700; } .sgterms dd{ margin: 2px 0 0; color: var(--ink-2); font-size: .9375rem; }

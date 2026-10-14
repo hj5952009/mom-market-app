@@ -316,7 +316,7 @@
   var buildInfo = null;
   function getBuild() {
     if (buildInfo) return Promise.resolve(buildInfo);
-    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.2.0' }; })
+    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.3.0' }; })
       .then(function (b) { buildInfo = b; return b; });
   }
   function checkUpdate() {
@@ -370,7 +370,13 @@
       var fresh = null;
       try {
         // 데모: 2026-10-14 오전 실제 점검 결과와 같은 모양(마지막 날짜만 기준일로 맞춤)
-        var fake = {}; root.Freshness.ITEMS.forEach(function (it) { fake[it[0]] = { rows: [{ d: root.Freshness.expectedLast(it[2], demoNow), c: null }] }; });
+        // 실제 2026-10-13 장 마감 값(10-14 오전 Yahoo에서 확인) [전날, 마지막]
+        var REAL = { '^TNX': [5.24, 5.217], '^SOX': [12236.79, 12208.79], MU: [989.04, 953.19], '^IXIC': [27245.9, 27204.38], HYG: [77.29, 77.09],
+          'KRW=X': [1340.84, 1334.13], EEM: [66.15, 65.74], EWY: [170.11, 166.56], '^VIX': [15.21, 15.27], '^STOXX50E': [6201.21, 6167.01] };
+        var fake = {}; root.Freshness.ITEMS.forEach(function (it) {
+          var dl = root.Freshness.expectedLast(it[2], demoNow), r = REAL[it[0]];
+          fake[it[0]] = { rows: r ? [{ d: U.addDays(dl, -1), c: r[0] }, { d: dl, c: r[1] }] : [{ d: dl, c: null }] };
+        });
         fake['^KS11'] = { rows: [{ d: result.baseDate, c: result.baseClose }] };
         fresh = root.Freshness.check(fake, demoNow, { fetchErrors: pre && pre.symbols ? pre.symbols.reduce(function (o, s) { o[s] = 'timeout'; return o; }, {}) : {},
           patched: { '^KS11': [{ d: '2026-10-13' }], EWY: [{ d: '2026-10-13' }], MU: [{ d: '2026-10-13' }] } });

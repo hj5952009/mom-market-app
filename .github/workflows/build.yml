@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main]
+    branches: [main, beta]
     paths-ignore:
       - 'tools/health-check.js'
       - '.github/workflows/data-health.yml'
@@ -49,7 +49,7 @@ jobs:
         run: |
           V=$(grep -m1 'versionName' android/app/build.gradle | sed -E 's/.*"([^"]+)".*/\1/')
           echo "version=$V" >> "$GITHUB_OUTPUT"
-          echo "tag=v$V-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.ref_name }}" = "beta" ]; then echo "tag=v$V-beta-${{ github.run_number }}" >> "$GITHUB_OUTPUT"; else echo "tag=v$V-${{ github.run_number }}" >> "$GITHUB_OUTPUT"; fi
 
       - name: Stamp build number into the web app (used by "새 버전 확인")
         run: |
@@ -93,4 +93,6 @@ jobs:
             엄마의 시장 나침반 ${{ steps.ver.outputs.version }} (빌드 ${{ github.run_number }})
             설치: 아래 market-compass.apk를 폰에서 내려받아 열어 주세요. (가족용 앱 — 다른 사람에게 나눠 주지 말아 주세요.)
           files: market-compass.apk
-          make_latest: true
+          # beta 가지에서 만든 것은 '미리 보기'(prerelease)로만 올려서, 어머니 앱의 '새 버전 확인'(releases/latest)에는 보이지 않게 한다
+          prerelease: ${{ github.ref_name == 'beta' }}
+          make_latest: ${{ github.ref_name == 'main' && 'true' || 'false' }}
