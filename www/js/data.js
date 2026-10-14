@@ -143,6 +143,8 @@
 
   // ================================================================ 엔진
   var REPO = 'hj5952009/mom-market-app';
+  // 새 버전 확인은 이 저장소의 Releases를 본다(2.2.1에서 잠깐 옮겼다가 2.2.2에서 되돌림).
+  var RELEASE_REPO = REPO;
   var FETCH_BUDGET_MS = 30000;   // 30초 넘으면 중단 (저장된 시세가 없는 첫 실행은 60초)
   var PAYLOAD_VERSION = 3;       // v2.0.0: 저장 결과 구조가 바뀜(v1 결과는 무시하고 새로 계산, 시세는 그대로 이어 씀)
   var params = (function () { try { return new URLSearchParams(root.location.search); } catch (e) { return { get: function () { return null; } }; } })();
@@ -320,7 +322,7 @@
       .then(function (b) { buildInfo = b; return b; });
   }
   function checkUpdate() {
-    var url = 'https://api.github.com/repos/' + REPO + '/releases/latest';
+    var url = 'https://api.github.com/repos/' + RELEASE_REPO + '/releases/latest';
     return getBuild().then(function (b) {
       return httpGet(url, 15000).then(function (j) {
         var tag = j && j.tag_name, m = tag && /-(\d+)$/.exec(tag), remote = m ? +m[1] : 0;
