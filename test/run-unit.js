@@ -265,7 +265,7 @@ const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실'
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.2.1', /versionName "2\.2\.1"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.2.2', /versionName "2\.2\.2"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

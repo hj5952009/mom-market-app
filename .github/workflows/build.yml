@@ -21,9 +21,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    env:
-      # 공개 저장소(mom-market-releases)에 설치 파일을 올릴 토큰. 저장소 Secrets에 RELEASES_TOKEN이 없으면 그 단계만 건너뜀.
-      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -90,20 +87,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.ver.outputs.tag }}
-          name: 시장 나침반 ${{ steps.ver.outputs.tag }}
-          body: |
-            엄마의 시장 나침반 ${{ steps.ver.outputs.version }} (빌드 ${{ github.run_number }})
-            설치: 아래 market-compass.apk를 폰에서 내려받아 열어 주세요. (가족용 앱 — 다른 사람에게 나눠 주지 말아 주세요.)
-          files: market-compass.apk
-          make_latest: true
-
-      - name: Publish APK to public releases repo (앱의 '새 버전 확인'이 보는 곳)
-        if: ${{ env.RELEASES_TOKEN != '' }}
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: hj5952009/mom-market-releases
-          token: ${{ env.RELEASES_TOKEN }}
           tag_name: ${{ steps.ver.outputs.tag }}
           name: 시장 나침반 ${{ steps.ver.outputs.tag }}
           body: |

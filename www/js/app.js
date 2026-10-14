@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.2.1';
+  var APP_VERSION = '2.2.2';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
