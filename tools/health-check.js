@@ -16,12 +16,29 @@ const Compute = require(path.join(W, 'compute.js'));
 const Series = require(path.join(W, 'series.js')); global.Series = Series;
 const Fresh = require(path.join(W, 'freshness.js'));
 
-const UA = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 const ATTEMPTS = +(process.env.HEALTH_ATTEMPTS || 3), GAP_MS = +(process.env.HEALTH_GAP_MS || 300000);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// 데이터센터(GitHub) IP는 쿠키 없이 부르면 429를 받기 쉬워서, yfinance처럼 쿠키·crumb를 먼저 받아 둔다.
+let SESSION = null;
+async function session() {
+  if (SESSION) return SESSION;
+  SESSION = { cookie: '', crumb: '' };
+  try {
+    const r = await fetch('https://fc.yahoo.com/', { headers: { 'User-Agent': UA }, redirect: 'manual' });
+    const sc = typeof r.headers.getSetCookie === 'function' ? r.headers.getSetCookie() : [r.headers.get('set-cookie') || ''];
+    SESSION.cookie = sc.map(c => c.split(';')[0]).filter(Boolean).join('; ');
+    const c = await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb', { headers: { 'User-Agent': UA, Cookie: SESSION.cookie } });
+    if (c.ok) SESSION.crumb = (await c.text()).trim();
+  } catch (e) { /* 쿠키 없이 진행 */ }
+  return SESSION;
+}
 async function getJson(url) {
-  const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
+  const ss = await session();
+  if (ss.crumb) url += '&crumb=' + encodeURIComponent(ss.crumb);
+  const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json', Cookie: ss.cookie } });
+  if (r.status === 429) { await sleep(3000); }
   const j = await r.json().catch(() => null);
   if (!r.ok && !(j && j.chart)) throw new Error('HTTP ' + r.status);
   return j;
@@ -33,6 +50,7 @@ async function fetchOne(sym, patched) {
     try {
       const base = 'https://' + host + '.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?';
       const j = await getJson(base + 'range=10y&interval=1d&includeAdjustedClose=true');
+      await sleep(400);
       if (Series.nullCloses(j, Date.now()).length) {
         let ref = null;
         try { const rj = await getJson(base + 'range=1d&interval=1d'); ref = rj.chart.result[0].meta; } catch (e) { /* 채우지 못함 */ }
