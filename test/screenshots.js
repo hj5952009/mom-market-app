@@ -11,7 +11,7 @@ const { chromium } = require('playwright-core');
 const WWW = path.join(__dirname, '..', 'www');
 const OUT = path.join(__dirname, '..', 'screenshots');
 fs.mkdirSync(OUT, { recursive: true });
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 function findChrome() {
   const base = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
   const dirs = fs.readdirSync(base).filter(d => /^chromium-\d+$/.test(d)).sort();
@@ -20,7 +20,7 @@ function findChrome() {
 }
 
 const SHOTS = [];
-const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info']];
+const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info'], ['09_cal', 'tab=cal']];
 for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3']) {
   SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
 }
@@ -37,6 +37,10 @@ SHOTS.push(['08_tooltip_fan_light_x1.0', 'tab=predict', { theme: 'light', viewpo
 SHOTS.push(['08_tooltip_bands_dark_x1.3', 'tab=record&scale=1.3', { theme: 'dark', viewportOnly: true, tap: ['#c-bands', 0.55, 0.4] }]);
 SHOTS.push(['08_tooltip_density_light_x1.3', 'tab=predict&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-dens', 0.7, 0.5] }]);
 SHOTS.push(['08_tooltip_ladder_dark_x1.0', 'tab=predict', { theme: 'dark', viewportOnly: true, tap: ['#c-ladder', 0.5, 0.6] }]);
+SHOTS.push(['09_cal_day1012_light_x1.0', 'tab=cal&day=2026-10-12', { theme: 'light' }]);
+SHOTS.push(['09_cal_pending_light_x1.0', 'tab=cal&day=2026-10-14', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['09_cal_month0726_dark_x1.0', 'tab=cal&day=2026-07-31', { theme: 'dark', viewportOnly: true }]);
+SHOTS.push(['08_tooltip_day_light_x1.3', 'tab=cal&day=2026-10-12&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-day', 0.6, 0.75] }]);
 SHOTS.push(['08_tooltip_fanhist_light_x1.3', 'tab=predict&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-fan', 0.3, 0.5] }]);
 
 (async () => {

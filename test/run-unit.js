@@ -163,6 +163,72 @@ eq('10년보다 오래된 행은 잘라 10년치와 같은 구간', old.series.r
 const keep = KModel.mergeSeries({ '^KS11': { rows: ks } }, { '^SOX': RAW['^SOX'] });
 ok('못 받은 종목은 저장된 시세로 채움', keep['^SOX'] && keep['^SOX'].rows.length === RAW['^SOX'].rows.length);
 
+
+// ------------------------------------------------------------------
+section('빈 종가 메우기 (2026-10-14 실제 사례: Yahoo가 10-13 종가를 비워 둠)');
+{
+  const NOW = Date.parse('2026-10-14T01:26:00Z');   // 10:26 KST, 코스피 장중
+  const d0 = Date.parse('2026-10-12T00:00:00Z') / 1000, D = 86400;
+  const ksj = () => ({ chart: { result: [{
+    meta: { gmtoffset: 32400, exchangeTimezoneName: 'Asia/Seoul', regularMarketPrice: 6103.81, regularMarketTime: Date.parse('2026-10-14T01:06:20Z') / 1000,
+      currentTradingPeriod: { regular: { start: d0 + 2 * D, end: d0 + 2 * D + 21600 } } },
+    timestamp: [d0 - 3 * D, d0, d0 + D, d0 + 2 * D],
+    indicators: { quote: [{ close: [6625.93, 6384.24, null, 6103.81], high: [6810.83, 6589.69, null, 6190.65], low: [6625.93, 6368.49, null, 6062.08] }],
+      adjclose: [{ adjclose: [6625.93, 6384.24, null, 6103.81] }] }
+  }] } });
+  const j = ksj();
+  eq('빈 종가 찾기 (진행 중인 10-14 막대는 제외)', Series.nullCloses(j, NOW).map(x => x.d), ['2026-10-13']);
+  const before = KModel.parseChart(ksj(), '^KS11', NOW).rows;
+  eq('고치기 전: 마지막 종가가 10-12로 밀림 (앱에 10-13 예측이 계속 보이던 원인)', before[before.length - 1].d, '2026-10-12');
+  const ref = { chartPreviousClose: 6035.35, regularMarketTime: Date.parse('2026-10-14T01:06:20Z') / 1000, regularMarketPrice: 6103.81,
+    currentTradingPeriod: { regular: { start: d0 + 2 * D, end: d0 + 2 * D + 21600 } } };
+  eq('전 거래일 공식 종가로 채움', Series.fillNullCloses(j, ref, NOW), [{ d: '2026-10-13', c: 6035.35, src: 'previousClose' }]);
+  const after = KModel.parseChart(j, '^KS11', NOW).rows;
+  eq('고친 뒤: 마지막 종가 10-13 = 6035.35', after[after.length - 1], { d: '2026-10-13', c: 6035.35, a: 6035.35 });
+  eq('range=1d 응답이 없으면 채우지 않음(코스피는 장중)', Series.fillNullCloses(ksj(), null, NOW), []);
+  const bad = Object.assign({}, ref, { chartPreviousClose: 9999 });
+  eq('앞 종가와 30% 넘게 다르면 쓰지 않음', Series.fillNullCloses(ksj(), bad, NOW), []);
+  const hl = Series.extractHL(ksj(), NOW);
+  eq('장중 고가·저가 (빈 막대·진행 중 막대 제외)', Object.keys(hl), ['2026-10-09', '2026-10-12']);
+  eq('고가·저가 합치기', Object.keys(Series.mergeHL({ '2024-01-02': [1, 1], '2026-10-08': [0, 0] }, hl, '2024-12-01')), ['2026-10-08', '2026-10-09', '2026-10-12']);
+
+  // 미국 종목: 장이 끝난 10-13 종가가 비어 있음 → meta.regularMarketPrice(10-13 16:00 ET)
+  const e0 = Date.parse('2026-10-12T13:30:00Z') / 1000;
+  const ewy = { chart: { result: [{
+    meta: { gmtoffset: -14400, exchangeTimezoneName: 'America/New_York', regularMarketPrice: 166.56, regularMarketTime: Date.parse('2026-10-13T20:00:00Z') / 1000,
+      currentTradingPeriod: { regular: { start: e0 + D, end: e0 + D + 23400 } } },
+    timestamp: [e0 - 3 * D, e0, e0 + D],
+    indicators: { quote: [{ close: [177.24, 170.11, null] }], adjclose: [{ adjclose: [177.24, 170.11, null] }] }
+  }] } };
+  eq('미국 종목: 마지막 장 종가 = regularMarketPrice', Series.fillNullCloses(ewy, null, NOW), [{ d: '2026-10-13', c: 166.56, src: 'regularMarketPrice' }]);
+  const during = JSON.parse(JSON.stringify(ewy)); during.chart.result[0].meta.currentTradingPeriod.regular = { start: e0 + D, end: e0 + D + 23400 };
+  eq('그 장이 아직 진행 중이면 채우지 않음', Series.fillNullCloses(during, null, Date.parse('2026-10-13T15:00:00Z')), []);
+}
+
+section('지금쯤 있어야 할 마지막 코스피 종가');
+eq('수 10:23 → 화', U.expectedLastClose(Date.parse('2026-10-14T10:23:00+09:00')), '2026-10-13');
+eq('수 16:20 → 수', U.expectedLastClose(Date.parse('2026-10-14T16:20:00+09:00')), '2026-10-14');
+eq('토 → 금', U.expectedLastClose(Date.parse('2026-10-17T12:00:00+09:00')), '2026-10-16');
+eq('성탄절(휴장) 오후 → 전날', U.expectedLastClose(Date.parse('2026-12-25T17:00:00+09:00')), '2026-12-24');
+
+section('예측 달력');
+{
+  const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
+  const cd = Compute.calendarData(H, { '2026-10-12': [6589.69, 6368.49] }, '2025-01-01');
+  eq('전체 거래일 = 최종 검증 일수', cd.all.n, fx.stats.holdoutN);
+  eq('95% 적중 일수 = 모델 성적과 같음', cd.all.in95, Math.round(fx.stats.cov95 * fx.stats.holdoutN));
+  near('80% 적중률 = 모델 성적', cd.all.hit80, fx.stats.cov80, 0.0015);
+  near('방향 일치율 ≈ 모델 방향 적중률 (오를 확률 반올림 차이만)', cd.all.dirRate, fx.stats.dirHit, 0.003);
+  const d13 = cd.byDate['2026-10-13'];
+  eq('10-13: 95% 밖·80% 밖, 오를 확률 48% → 내림 예상, 실제 하락 → 방향 일치', [d13.in95, d13.in80, d13.dir], [false, false, true]);
+  near('10-13 중심값과 차이(%)', d13.errPct, (6035.35 / 6360 - 1) * 100, 1e-9);
+  eq('10-12 장중 고가·저가', [cd.byDate['2026-10-12'].high, cd.byDate['2026-10-12'].low], [6589.69, 6368.49]);
+  eq('오를 확률이 없는 날은 방향 판단 안 함', Compute.dirMatch({ pUp: null, actual: 2, prevClose: 1 }), null);
+  eq('50%인 날은 방향 판단 안 함', Compute.dirMatch({ pUp: 0.5, actual: 2, prevClose: 1 }), null);
+  eq('달별 묶음: 최근 달이 앞', cd.months[0].ym, '2026-10');
+  eq('2026년 10월 거래일', cd.months[0].stats.n, H.filter(h => h.date >= '2026-10').length);
+}
+
 // ------------------------------------------------------------------
 section('기록 계산');
 const hist = [true, true, false, true, true, true].map((v, i) => ({ date: '2026-01-0' + (i + 1), in95: v }));
@@ -178,7 +244,7 @@ const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실'
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.0.0', /versionName "2\.0\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.1.0', /versionName "2\.1\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

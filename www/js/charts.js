@@ -349,6 +349,53 @@
     });
   }
 
+  /* 예측 달력 하루: 위 줄 = 예측(95%·80% 범위, 중심), 아래 줄 = 실제(장중 저가~고가, 종가 점), 점선 = 전날 종가.
+   * d: {r80, r95, center, prevClose, actual|null, high|null, low|null, in95} */
+  function dayBar(el, d) {
+    mount(el, '예측 범위와 실제 움직임', function (w, F) {
+      var labW = tw('예측', F) + 12, barH = 14, rowH = Math.max(F * 2.1, barH + 18), topH = F * 1.6, axisH = F * 1.8;
+      var vals = [d.r95[0], d.r95[1], d.prevClose];
+      if (d.actual > 0) vals.push(d.actual);
+      if (d.high > 0) vals.push(d.high, d.low);
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), pd = (hi - lo) * 0.04 || 10;
+      var x0 = labW, x1 = w - 6, x = lin(lo - pd, hi + pd, x0, x1), s = '';
+      var rows = d.actual > 0 ? 2 : 1, h = topH + rowH * rows + axisH;
+      var xb = x(d.prevClose), bl = '전날 종가 ' + U.fmtInt(d.prevClose), bw = tw(bl, F);
+      s += T(Math.max(x0 + bw / 2, Math.min(w - bw / 2, xb)), F * 1.05, bl, F, 'c-lab num', 'middle');
+      var y1 = topH + (rowH - barH) / 2;
+      s += T(0, y1 + barH / 2 + F * 0.35, '예측', F, 'c-lab', 'start');
+      s += rangeBar(x(d.r95[0]), x(d.r95[1]), y1, barH, 'b4');
+      s += rangeBar(x(d.r80[0]), x(d.r80[1]), y1, barH, 'b2');
+      s += C(x(d.center), y1 + barH / 2, 4, 'c-dot');
+      var y2 = topH + rowH + rowH / 2;
+      if (rows === 2) {
+        s += T(0, y2 + F * 0.35, '실제', F, 'c-lab', 'start');
+        if (d.high > 0 && d.low > 0) {
+          s += L(x(d.low), y2, x(d.high), y2, 'c-line');
+          s += L(x(d.low), y2 - 6, x(d.low), y2 + 6, 'c-line') + L(x(d.high), y2 - 6, x(d.high), y2 + 6, 'c-line');
+        }
+        s += C(x(d.actual), y2, 6, d.in95 ? 'c-dot' : 'c-miss');
+      }
+      s += L(xb, topH - 4, xb, topH + rowH * rows, 'c-base');
+      var ay = topH + rowH * rows;
+      priceTicks(lo - pd, hi + pd, x, x0, x1, F).forEach(function (t) { s += T(x(t), ay + F * 1.3, U.fmtInt(t), F, 'c-txt num', 'middle'); });
+      return {
+        h: h, svg: s, stops: [[w / 2, topH + rowH / 2]].concat(rows === 2 ? [[w / 2, y2]] : []),
+        probe: function (px, py) {
+          var second = rows === 2 && py > topH + rowH;
+          if (!second) return {
+            band: { x: -4, y: topH, w: w + 8, h: rowH }, ax: x(d.center), ay: topH,
+            title: '예측', rows: [{ label: '중심값', value: U.fmt10(d.center) }, { label: '80% 범위', value: rangeTxt(d.r80[0], d.r80[1]) }, { label: '95% 범위', value: rangeTxt(d.r95[0], d.r95[1]) }]
+          };
+          var rr = [{ label: '종가', value: U.fmtInt(d.actual) }];
+          if (d.high > 0) rr.push({ label: '장중 저가~고가', value: U.fmtInt(d.low) + '~' + U.fmtInt(d.high) });
+          rr.push({ label: '전날 대비', value: U.signPct(U.pctOf(d.actual, d.prevClose)) });
+          return { band: { x: -4, y: topH + rowH, w: w + 8, h: rowH }, ax: x(d.actual), ay: topH + rowH, title: '실제', rows: rr };
+        }
+      };
+    });
+  }
+
   /* SOX 결과별 시나리오(포레스트): 80/95% 범위 + 중심, 각 줄에 오를 확률. d: {scenarios, base} */
   function scenarios(el, d) {
     var sc = d.scenarios;
@@ -583,7 +630,7 @@
 
   root.Charts = {
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
-    bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots,
+    bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,
     redrawAll: redrawAll, reset: reset, _tw: tw, _niceTicks: niceTicks
   };
 })(window);

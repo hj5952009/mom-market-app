@@ -2,20 +2,24 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.0.0';
+  var APP_VERSION = '2.1.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
   var S = {
     tab: 'predict', payload: null, loading: null, error: null, period: '3m', scroll: {},
     settings: Object.assign({ notif: { on: true, time: '08:40' }, scale: 1 }, LS.get('settings2', {})),
-    sysScale: 1, update: null, build: null, lastBack: 0
+    sysScale: 1, update: null, build: null, lastBack: 0,
+    hl: {}, cal: { month: null, sel: null, allMonths: false }
   };
 
   var I = {
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
     predict: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 3 4-6"/><path d="M16 9l5-4M16 9l5 9" opacity=".6"/></svg>',
     record: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M8 15l2.5-3 2.5 2 3-4.5"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.5h.01M12 14.5h.01M16 14.5h.01" stroke-width="2.6"/></svg>',
+    prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+    next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
   };
 
@@ -81,7 +85,7 @@
       '</div>', 'kpicard'));
     // 2) 팬 차트
     var sub = st.status === 'preview' ? (P.out.previewReason ? '미국 시세를 다 받지 못해 미리 보기로 계산했어요' : '미국 장이 끝나기 전 계산이라 범위가 넓어요')
-      : st.status === 'past' ? '이미 지난 날의 예측이에요. 새로고침하면 다시 계산해요' : '간밤 미국 장 결과까지 반영했어요';
+      : st.status === 'past' ? (lagDate() ? '새 종가가 아직 들어오지 않아 지난 예측을 보여 드려요' : '이미 지난 날의 예측이에요. 새로고침하면 다시 계산해요') : '간밤 미국 장 결과까지 반영했어요';
     out.push(card(head('최근 30거래일과 예측 범위', sub) + chartBox('c-fan') +
       legend([['ln', '', '실제 종가'], ['sw', '--band-1', '50%'], ['sw', '--band-2', '80%'], ['sw', '--band-4', '95% 범위'], ['ln', 'dash', '중심 예상']])));
     var hist = (r.kospiSeries || []).slice(-30);
@@ -183,6 +187,123 @@
     return f.slice(0, 4) + '년 ' + (+f.slice(5, 7)) + '월부터 ' + (r.stats ? r.stats.holdoutN : '') + '거래일 검증';
   }
 
+
+  // ------------------------------------------------------------------ 달력 탭
+  // 날마다 '그 전날까지 자료로 계산한 예측'(아침 확정 기준)과 실제 종가·장중 범위를 나란히 본다.
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymAdd(ym, n) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + '-' + pad2(m + 1); }
+  function ymLabel(ym) { return ym.slice(0, 4) + '년 ' + (+ym.slice(5, 7)) + '월'; }
+  function ratio(a, b) { return b ? a + '/' + b : '–'; }
+  function pctTxt(v) { return v == null ? '–' : (v * 100).toFixed(1); }
+  function calCtx() {
+    var P = S.payload, r = P.out.result, now = D.nowMs(), st = U.forecastStatus(r, P.out.previewReason, now);
+    var from = (r.stats && r.stats.from) || '2025-01-01';
+    var cd = Cp.calendarData(r.history, S.hl, from);
+    var pend = cd.byDate[st.target] ? null : {
+      date: st.target, center: r.center, r80: r.ranges['0.8'], r95: r.ranges['0.95'], pUp: r.pUp, prevClose: r.baseClose, label: st.label
+    };
+    var maxYM = (pend ? pend.date : cd.last || st.today).slice(0, 7), minYM = (cd.first || from).slice(0, 7);
+    var sel = S.cal.sel && (cd.byDate[S.cal.sel] || (pend && pend.date === S.cal.sel)) ? S.cal.sel : (cd.last || (pend && pend.date));
+    var month = S.cal.month || (sel ? sel.slice(0, 7) : maxYM);
+    if (month > maxYM) month = maxYM; if (month < minYM) month = minYM;
+    return { r: r, st: st, cd: cd, pend: pend, from: from, sel: sel, month: month, minYM: minYM, maxYM: maxYM };
+  }
+  function calCell(ds, c) {
+    var dn = +ds.slice(8, 10), d = c.cd.byDate[ds], cls = 'cd', mk = '', lab;
+    if (d) {
+      cls += d.in80 ? ' h80' : d.in95 ? ' h95' : ' miss';
+      mk = d.dir === true ? '<span class="mk">○</span>' : d.dir === false ? '<span class="mk x">×</span>' : '<span class="mk">·</span>';
+      lab = U.fmtTitleDate(ds) + ', ' + (d.in80 ? '80% 범위 안' : d.in95 ? '95% 범위 안' : '95% 범위 밖') + (d.dir === true ? ', 방향 맞음' : d.dir === false ? ', 방향 틀림' : '');
+    } else if (c.pend && ds === c.pend.date) {
+      cls += ' pend'; mk = '<span class="mk">예측</span>'; lab = U.fmtTitleDate(ds) + ', 결과 기다리는 중';
+    } else {
+      var past = c.cd.last && ds < c.cd.last && ds >= c.from;
+      return '<div class="cd off" aria-hidden="true"><span class="dn">' + dn + '</span>' + (past ? '<span class="mk">휴장</span>' : '') + '</div>';
+    }
+    if (ds === c.sel) cls += ' sel';
+    return '<button type="button" class="' + cls + '" data-act="calday" data-d="' + ds + '" aria-pressed="' + (ds === c.sel) + '" aria-label="' + esc(lab) + '"><span class="dn">' + dn + '</span>' + mk + '</button>';
+  }
+  function calGrid(c) {
+    var ym = c.month, last = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7), 0)).getUTCDate(), cells = [], started = false;
+    for (var day = 1; day <= last; day++) {
+      var ds = ym + '-' + pad2(day), w = U.dowOf(ds);
+      if (w === 0 || w === 6) continue;
+      if (!started) { for (var k = 1; k < w; k++) cells.push('<div class="cd blank" aria-hidden="true"></div>'); started = true; }
+      cells.push(calCell(ds, c));
+    }
+    return '<div class="calhead" aria-hidden="true">' + ['월', '화', '수', '목', '금'].map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</div>' +
+      '<div class="calgrid">' + cells.join('') + '</div>';
+  }
+  function miniStats(st) {
+    return '<div class="mstats">' + [
+      [ratio(st.in95, st.n), '95% 범위 적중'], [ratio(st.in80, st.n), '80% 범위 적중'], [ratio(st.dirHit, st.dirN), '방향 일치']
+    ].map(function (k) { return '<div><b class="num">' + k[0] + '</b><span>' + k[1] + '</span></div>'; }).join('') + '</div>';
+  }
+  function dayDetail(c, mounts) {
+    var ds = c.sel; if (!ds) return '';
+    var d = c.cd.byDate[ds], p = !d && c.pend && c.pend.date === ds ? c.pend : null;
+    if (!d && !p) return '';
+    var x = d || p, dPct = U.pctOf(x.center, x.prevClose);
+    var rows = [
+      ['예측 중심값', U.fmt10(x.center) + ' <small>(' + U.signPct(dPct) + ')</small>'],
+      ['오를 확률', x.pUp == null ? '–' : Math.round(x.pUp * 100) + '% <small>' + (x.pUp > 0.5 ? '오름 쪽 예상' : x.pUp < 0.5 ? '내림 쪽 예상' : '반반') + '</small>'],
+      ['80% 범위', U.fmt10(x.r80[0]) + ' ~ ' + U.fmt10(x.r80[1])],
+      ['95% 범위', U.fmt10(x.r95[0]) + ' ~ ' + U.fmt10(x.r95[1])]
+    ];
+    var pills = '', html;
+    if (d) {
+      rows.push(['실제 종가', '<b>' + U.fmtInt(d.actual) + '</b> <small class="' + (d.chgPct >= 0 ? 'up-t' : 'down-t') + '">' + (d.chgPct >= 0 ? '▲ ' : '▼ ') + U.signPct(d.chgPct) + '</small>']);
+      rows.push(['장중 저가~고가', d.high ? U.fmtInt(d.low) + ' ~ ' + U.fmtInt(d.high) : '<small>정보 없음</small>']);
+      rows.push(['중심값과 차이', (d.err >= 0 ? '+' : '−') + U.fmtInt(Math.abs(d.err)) + ' <small>(' + U.signPct(d.errPct) + ')</small>']);
+      pills = '<div class="pills">' +
+        '<span class="pill ' + (d.in95 ? 'ok' : 'no') + '">95% 범위 ' + (d.in95 ? '안 ✓' : '밖') + '</span>' +
+        '<span class="pill ' + (d.in80 ? 'ok' : 'no') + '">80% 범위 ' + (d.in80 ? '안 ✓' : '밖') + '</span>' +
+        (d.dir === null ? '' : '<span class="pill ' + (d.dir ? 'ok' : 'no') + '">방향 ' + (d.dir ? '맞음 ○' : '틀림 ×') + '</span>') + '</div>';
+    }
+    html = card(head(U.fmtTitleDate(ds) + (p ? ' 예측' : ' 예측과 실제'), p ? '장이 끝나면(오후 3시 30분) 실제 종가와 비교해요' : '전날까지의 자료로만 계산한 예측(아침 확정 기준)이에요') +
+      pills + chartBox('c-day') +
+      '<dl class="kv">' + rows.map(function (r0) { return '<div><dt>' + r0[0] + '</dt><dd class="num">' + r0[1] + '</dd></div>'; }).join('') + '</dl>' +
+      (d ? legend([['sw', '--band-2', '80%'], ['sw', '--band-4', '95% 범위'], ['dot', '--ink', '중심·종가'], ['ln', '', '장중 저가~고가'], ['ln', 'dash', '전날 종가']]) : ''));
+    mounts.push(function () {
+      Ch.dayBar($('c-day'), { r80: x.r80, r95: x.r95, center: x.center, prevClose: x.prevClose, actual: d ? d.actual : null, high: d ? d.high : null, low: d ? d.low : null, in95: d ? d.in95 : true });
+    });
+    return html;
+  }
+  function pageCal() {
+    var P = S.payload;
+    setBar('예측 달력', '', false);
+    if (!P) return { html: emptyState() };
+    var c = calCtx(), out = [], mounts = [];
+    var mm = c.cd.months.filter(function (m) { return m.ym === c.month; })[0];
+    var nav = '<div class="calnav"><button type="button" class="iconbtn sm" data-act="calm" data-n="-1" aria-label="이전 달"' + (c.month <= c.minYM ? ' disabled' : '') + '>' + I.prev + '</button>' +
+      '<h2>' + ymLabel(c.month) + '</h2>' +
+      '<button type="button" class="iconbtn sm" data-act="calm" data-n="1" aria-label="다음 달"' + (c.month >= c.maxYM ? ' disabled' : '') + '>' + I.next + '</button></div>';
+    out.push(card(nav + calGrid(c) +
+      '<div class="callegend"><span><i class="cdk h80"></i>80% 범위 안</span><span><i class="cdk h95"></i>95% 범위 안</span><span><i class="cdk miss"></i>95% 범위 밖</span><span><b>○</b> 방향 맞음 <b>×</b> 틀림</span></div>' +
+      (mm ? '<p class="sub" style="margin-top:12px">이 달 ' + mm.stats.n + '거래일</p>' + miniStats(mm.stats) : '<p class="note">이 달은 아직 결과가 없어요</p>')));
+    out.push(dayDetail(c, mounts));
+
+    var A = c.cd.all;
+    out.push(card(head('전체 성적', ymLabel(c.from.slice(0, 7)) + '부터 ' + A.n + '거래일') + '<div class="kpis four flat">' + [
+      [A.hit95, '95% 범위 적중률', ratio(A.in95, A.n) + '일'], [A.hit80, '80% 범위 적중률', ratio(A.in80, A.n) + '일'],
+      [A.dirRate, '방향 일치율', ratio(A.dirHit, A.dirN) + '일'], [A.nearRate, '중심값 ±1% 이내', ratio(A.near1, A.n) + '일']
+    ].map(function (k) {
+      return '<div class="kpi"><div class="v">' + pctTxt(k[0]) + '<span class="pc">%</span></div><div class="l">' + esc(k[1]) + '</div><div class="l2 num">' + esc(k[2]) + '</div></div>';
+    }).join('') + '</div>', ''));
+
+    var ms = S.cal.allMonths ? c.cd.months : c.cd.months.slice(0, 6);
+    out.push(card(head('달별 성적', '줄을 누르면 그 달로 가요') +
+      '<table class="mtab"><thead><tr><th>달</th><th>거래일</th><th>95%</th><th>80%</th><th>방향</th></tr></thead><tbody>' +
+      ms.map(function (m) {
+        var s0 = m.stats;
+        return '<tr data-act="calgo" data-ym="' + m.ym + '"' + (m.ym === c.month ? ' class="on"' : '') + '><td>' + ymLabel(m.ym).slice(2) + '</td><td class="num">' + s0.n + '</td>' +
+          '<td class="num">' + Math.round(s0.hit95 * 100) + '%</td><td class="num">' + Math.round(s0.hit80 * 100) + '%</td><td class="num">' + (s0.dirRate == null ? '–' : Math.round(s0.dirRate * 100) + '%') + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      (c.cd.months.length > 6 ? '<button type="button" class="btn ghost wide" data-act="calall">' + (S.cal.allMonths ? '접기' : '전체 ' + c.cd.months.length + '개월 보기') + '</button>' : '')));
+    out.push('<p class="foot">적중률: 실제 종가가 예측 범위 안에서 끝난 비율<br>방향 일치율: 오를 확률 50%를 기준으로 예상한 방향이 실제와 같았던 비율</p>');
+    return { html: out.join(''), mounts: mounts };
+  }
+
   // ------------------------------------------------------------------ 정보 탭
   var VARS = ['나스닥', 'SOX(미국 반도체)', 'VIX(미국 변동성)', 'EWY(미국 상장 한국 ETF)', '코스피 전날 등락', '원/달러 환율', 'HYG(미국 하이일드 채권)',
     'EEM(신흥국 주식)', '유로스톡스50', '마이크론', '미국 10년물 금리'];
@@ -223,7 +344,7 @@
   }
 
   // ------------------------------------------------------------------ 그리기
-  var PAGES = { predict: pagePredict, record: pageRecord, info: pageInfo };
+  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, info: pageInfo };
   function render() {
     Ch.reset();
     var pg = PAGES[S.tab]();
@@ -249,6 +370,11 @@
       el.innerHTML = '<div class="strip"><div class="grow">' + esc(errText(S.error)) + '. 저장된 예측을 보여 드려요</div><button type="button" data-act="refresh">다시 시도</button></div>';
       return;
     }
+    var lag = lagDate();
+    if (lag) {
+      el.innerHTML = '<div class="strip"><div class="grow">' + esc(U.fmtTitleDate(lag)) + ' 코스피 종가가 아직 시세 서버에 없어요. 10분마다 다시 받아 볼게요</div><button type="button" data-act="refresh">다시 시도</button></div>';
+      return;
+    }
     el.innerHTML = '';
   }
   function goTab(t) {
@@ -258,7 +384,13 @@
   }
 
   // ------------------------------------------------------------------ 갱신
-  var retryTimer = null, previewRetry = null;
+  var retryTimer = null, previewRetry = null, lagRetry = null;
+  // 지금쯤이면 있어야 할 코스피 종가가 결과에 없으면 그 날짜 (시세 서버가 늦거나 비워 둔 경우)
+  function lagDate() {
+    var P = S.payload; if (!P || D.demo) return null;
+    var exp = U.expectedLastClose(Date.now());
+    return P.out.result.baseDate < exp ? exp : null;
+  }
   function refresh(manual) {
     if (S.loading) return;
     if (D.demo) { if (manual) toast('데모 화면은 저장된 결과를 보여 줘요'); return; }
@@ -269,14 +401,19 @@
         S.payload = p; S.loading = null;
         // B2: 미국 자료가 덜 들어와 미리 보기로 계산했으면 10분 뒤 한 번 더 받아 본다
         if (p.out && p.out.previewReason && !previewRetry) previewRetry = setTimeout(function () { previewRetry = null; refresh(false); }, 10 * 60e3);
-        render();
+        if (lagDate() && !lagRetry) lagRetry = setTimeout(function () { lagRetry = null; if (lagDate()) refresh(false); }, 10 * 60e3);
+        return D.loadHL().then(function (hl) { S.hl = hl || {}; }).then(render, render);
       }, function (e) {
         S.loading = null; S.error = { code: e.code || 'ERROR', message: String(e.message || e) };
         render();
         if (e.code !== 'OFFLINE' && !retryTimer) retryTimer = setTimeout(function () { retryTimer = null; if (S.error) refresh(false); }, 5 * 60e3);
       });
   }
-  function stale() { return !S.payload || Date.now() - S.payload.computedAt > 10 * 60e3; }
+  function stale() {
+    if (!S.payload) return true;
+    var age = Date.now() - S.payload.computedAt;
+    return age > 10 * 60e3 || (!!lagDate() && age > 2 * 60e3);
+  }
 
   // ------------------------------------------------------------------ 알림
   function applyNotif() { if (!N.isNative) return Promise.resolve(); return N.Noti.apply(S.settings.notif); }
@@ -299,6 +436,8 @@
     if (N.isNative && S.settings.notif.on) N.Noti.request().then(function () { return applyNotif(); });
   }
 
+  function keepScroll() { var y = window.scrollY; render(); window.scrollTo(0, y); }
+
   // ------------------------------------------------------------------ 누름
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
@@ -319,6 +458,10 @@
         break;
       case 'download': if (S.update && S.update.url) N.openUrl(S.update.url); break;
       case 'noticeOk': closeNotice(); break;
+      case 'calday': S.cal.sel = d.d; S.cal.month = d.d.slice(0, 7); keepScroll(); break;
+      case 'calm': if (S.payload) { var cc = calCtx(); S.cal.month = ymAdd(cc.month, +d.n); } keepScroll(); break;
+      case 'calgo': S.cal.month = d.ym; S.cal.sel = null; render(); window.scrollTo(0, 0); break;
+      case 'calall': S.cal.allMonths = !S.cal.allMonths; keepScroll(); break;
     }
   });
   document.addEventListener('change', function (e) {
@@ -341,12 +484,13 @@
     var qs = D.params;
     if (qs.get('scale')) S.sysScale = +qs.get('scale');
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
-    Promise.all([N.textZoom(), D.getBuild(), D.loadLast()]).then(function (a) {
+    Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
-      S.build = a[1]; S.payload = a[2] || null;
+      S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
+      if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;
       if (/^(1m|3m|all)$/.test(qs.get('period') || '')) S.period = qs.get('period');
       render();

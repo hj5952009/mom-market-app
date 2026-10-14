@@ -197,10 +197,61 @@
     return out;
   }
 
+  // ------------------------------------------------------------------ 예측 달력
+  /* 방향 일치: 오를 확률 > 50%면 '오름' 예상, < 50%면 '내림' 예상. 실제는 종가가 전날 종가보다 높으면 오름.
+   * 50%였거나 종가가 같았던 날은 판단하지 않음(null) — model.js holdoutStats의 방향 적중률과 같은 기준. */
+  function dirMatch(h) {
+    if (!h || typeof h.pUp !== 'number' || h.pUp === 0.5 || !(h.actual > 0) || h.actual === h.prevClose) return null;
+    return (h.pUp > 0.5) === (h.actual > h.prevClose);
+  }
+  // 하루 기록 h(+ 장중 고가·저가 hl=[high, low])를 달력 한 칸 정보로
+  function calDay(h, hl) {
+    var d = {
+      date: h.date, prevClose: h.prevClose, center: h.center, pUp: typeof h.pUp === 'number' ? h.pUp : null,
+      r80: [h.lo80, h.hi80], r95: [h.lo95, h.hi95], actual: h.actual,
+      in80: !!h.in80, in95: !!h.in95, dir: dirMatch(h),
+      err: h.actual - h.center, errPct: (h.actual / h.center - 1) * 100, chgPct: (h.actual / h.prevClose - 1) * 100,
+      high: hl ? hl[0] : null, low: hl ? hl[1] : null
+    };
+    // 장중 움직임이 95% 범위 안에만 머물렀는지 (고가·저가가 있을 때)
+    d.intraIn95 = hl ? (hl[1] >= h.lo95 && hl[0] <= h.hi95) : null;
+    return d;
+  }
+  // 여러 날 성적: 범위 적중률(종가가 범위 안), 방향 일치율, 중심값 ±1% 이내 비율, 평균 오차(%)
+  function calStats(days) {
+    var n = days.length, in95 = 0, in80 = 0, dn = 0, dh = 0, near = 0, abs = 0;
+    days.forEach(function (d) {
+      if (d.in95) in95++; if (d.in80) in80++;
+      if (d.dir !== null) { dn++; if (d.dir) dh++; }
+      if (Math.abs(d.errPct) <= 1) near++;
+      abs += Math.abs(d.errPct);
+    });
+    return {
+      n: n, in95: in95, in80: in80, dirN: dn, dirHit: dh, near1: near,
+      hit95: n ? in95 / n : null, hit80: n ? in80 / n : null, dirRate: dn ? dh / dn : null,
+      nearRate: n ? near / n : null, mae: n ? abs / n : null
+    };
+  }
+  // history → {byDate, months:[{ym, stats}]} (최근 달이 앞)
+  function calendarData(history, hlMap, from) {
+    var byDate = {}, byMonth = {};
+    (history || []).forEach(function (h) {
+      if (from && h.date < from) return;
+      var d = calDay(h, hlMap && hlMap[h.date]);
+      byDate[h.date] = d;
+      (byMonth[h.date.slice(0, 7)] = byMonth[h.date.slice(0, 7)] || []).push(d);
+    });
+    var months = Object.keys(byMonth).sort().reverse().map(function (ym) { return { ym: ym, stats: calStats(byMonth[ym]) }; });
+    var all = [];
+    Object.keys(byDate).sort().forEach(function (k) { all.push(byDate[k]); });
+    return { byDate: byDate, months: months, all: calStats(all), first: all.length ? all[0].date : null, last: all.length ? all[all.length - 1].date : null };
+  }
+
   var Compute = {
     HISTORY_DAYS: HISTORY_DAYS, US_SYMS: US_SYMS, previewReason: previewReason, computeAll: computeAll,
     normCdf: normCdf, normPdf: normPdf, normInv: normInv,
-    quantileKnots: quantileKnots, densityFromQuantiles: densityFromQuantiles, pchip: pchip, rollingHit: rollingHit
+    quantileKnots: quantileKnots, densityFromQuantiles: densityFromQuantiles, pchip: pchip, rollingHit: rollingHit,
+    dirMatch: dirMatch, calDay: calDay, calStats: calStats, calendarData: calendarData
   };
   root.Compute = Compute;
   if (typeof module !== 'undefined' && module.exports) module.exports = Compute;

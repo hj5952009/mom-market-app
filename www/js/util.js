@@ -119,6 +119,15 @@
     return { target: target, today: today, status: status, label: { past: '지난 예측', preview: '미리 보기', final: '확정' }[status] };
   }
 
+  /* 지금 시각이면 Yahoo에 이미 있어야 할 마지막 코스피 종가 날짜.
+   * 오늘이 거래일이고 16:10(마감 15:30 + 여유 40분)이 지났으면 오늘, 아니면 그 전 거래일. */
+  var SETTLE_MIN = CLOSE_MIN + 40;
+  function expectedLastClose(nowMs) {
+    var today = kstDate(nowMs);
+    if (isTradingDay(today) && kstMinutes(nowMs) >= SETTLE_MIN) return today;
+    return prevTradingDay(today);
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -131,7 +140,7 @@
     kstParts: kstParts, kstDate: kstDate, kstMinutes: kstMinutes, addDays: addDays, dowOf: dowOf, dayDiff: dayDiff,
     fmtMD: fmtMD, fmtTitleDate: fmtTitleDate, fmtDateLong: fmtDateLong, fmtSlash: fmtSlash, fmtYM: fmtYM,
     fmtTime: fmtTime, fmtHM: fmtHM, fmtWhen: fmtWhen, relDay: relDay,
-    isTradingDay: isTradingDay, nextTradingDay: nextTradingDay, prevTradingDay: prevTradingDay,
+    isTradingDay: isTradingDay, nextTradingDay: nextTradingDay, prevTradingDay: prevTradingDay, expectedLastClose: expectedLastClose,
     forecastStatus: forecastStatus, esc: esc
   };
   root.MCUtil = MCUtil;
