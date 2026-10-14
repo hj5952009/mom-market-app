@@ -37,6 +37,7 @@ SHOTS.push(['08_tooltip_fan_light_x1.0', 'tab=predict', { theme: 'light', viewpo
 SHOTS.push(['08_tooltip_bands_dark_x1.3', 'tab=record&scale=1.3', { theme: 'dark', viewportOnly: true, tap: ['#c-bands', 0.55, 0.4] }]);
 SHOTS.push(['08_tooltip_density_light_x1.3', 'tab=predict&scale=1.3', { theme: 'light', viewportOnly: true, tap: ['#c-dens', 0.7, 0.5] }]);
 SHOTS.push(['08_tooltip_ladder_dark_x1.0', 'tab=predict', { theme: 'dark', viewportOnly: true, tap: ['#c-ladder', 0.5, 0.6] }]);
+SHOTS.push(['10_info_fresh_usmissing_light_x1.0', 'tab=info&scenario=usmissing', { theme: 'light' }]);
 SHOTS.push(['09_cal_day1012_light_x1.0', 'tab=cal&day=2026-10-12', { theme: 'light' }]);
 SHOTS.push(['09_cal_pending_light_x1.0', 'tab=cal&day=2026-10-14', { theme: 'light', viewportOnly: true }]);
 SHOTS.push(['09_cal_month0726_dark_x1.0', 'tab=cal&day=2026-07-31', { theme: 'dark', viewportOnly: true }]);

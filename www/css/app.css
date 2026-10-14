@@ -300,3 +300,22 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .mtab tr[data-act]{ cursor: pointer; }
 .mtab tr.on td{ background: var(--shade); }
 .btn.wide{ width: 100%; margin-top: 10px; }
+
+/* ---------- 자료 상태 ---------- */
+.freshrow{ display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 14px var(--pad); color: var(--ink); font-size: .9375rem; }
+.freshrow > svg{ width: 18px; height: 18px; color: var(--muted); flex: none; margin-left: auto; }
+.freshrow .ft{ min-width: 0; }
+.freshrow .ft b{ font-weight: 700; margin-right: 4px; }
+.freshrow .ft small{ display: block; color: var(--muted); font-size: .8125rem; margin-top: 2px; }
+.fdot{ width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--muted); display: inline-block; }
+.ok .fdot{ background: #2E9E6A; } .warn .fdot{ background: #D9A21B; } .bad .fdot{ background: var(--up); }
+.freshrow.bad{ border-color: var(--up); }
+.fsum{ display: flex; align-items: center; gap: 8px; font-weight: 700; margin-top: 10px; }
+.ftab{ width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .875rem; }
+.ftab th{ font-size: .8125rem; font-weight: 600; color: var(--muted); text-align: left; padding: 6px 3px; }
+.ftab td{ padding: 8px 3px; border-top: 1px solid var(--line); vertical-align: top; }
+.ftab th:nth-child(3), .ftab td:nth-child(3){ text-align: right; }
+.ftab td small{ display: block; color: var(--muted); font-size: .75rem; }
+.fs{ font-weight: 700; white-space: nowrap; }
+.fs.fresh{ color: #2E9E6A; } .fs.lag1{ color: #B8860B; } .fs.late, .fs.cached{ color: var(--up); }
+@media (prefers-color-scheme: dark){ .fs.fresh{ color: #4CC38A; } .ok .fdot{ background: #4CC38A; } .fs.lag1{ color: #E2B53E; } }

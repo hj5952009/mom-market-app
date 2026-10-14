@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.1.0';
+  var APP_VERSION = '2.2.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -110,7 +110,9 @@
       var mv = r.overnight.movesPct;
       var items = MOVE_NAMES.map(function (m) { return { name: m[1], full: m[2], v: mv[m[0]] == null ? null : mv[m[0]] }; });
       var when = r.overnight.usDate ? '미국 ' + U.fmtDateLong(r.overnight.usDate) + ' 장' : '';
-      out.push(card(head('간밤 해외 지표 변화', when ? when + ' 기준, 코스피 마감 이후 변화' : '코스피 마감 이후 변화') + chartBox('c-moves') +
+      var uc = r.overnight.usDate && window.Freshness ? window.Freshness.usCloseKst(r.overnight.usDate) : null;
+      var closeTxt = uc ? ' (한국 시간 ' + U.relDay(uc.date, st.today).replace(/^(\d+월 )/, '') + ' ' + (uc.hour < 12 ? '새벽 ' + uc.hour : '오후 ' + (uc.hour - 12)) + '시 마감)' : '';
+      out.push(card(head('간밤 해외 지표 변화', when ? when + closeTxt + '까지 반영 · ' + U.fmtMD(r.baseDate) + ' 코스피 마감 이후 변화' : '코스피 마감 이후 변화') + chartBox('c-moves') +
         (mv.tnx != null ? '<p class="note">미국 10년물 국채 금리 <b class="num" style="color:var(--ink)">' + (mv.tnx > 0 ? '+' : mv.tnx < 0 ? '−' : '') + Math.abs(mv.tnx).toFixed(2) + '%p</b></p>' : '')));
       mounts.push(function () { Ch.moves($('c-moves'), { items: items, when: when }); });
     } else if (r.scenarios && r.scenarios.length) {
@@ -118,8 +120,47 @@
         legend([['sw', '--band-2', '80%'], ['sw', '--band-4', '95% 범위'], ['dot', '--ink', '중심'], ['ln', 'dash', baseLabel]])));
       mounts.push(function () { Ch.scenarios($('c-scen'), { scenarios: r.scenarios, base: r.baseClose }); });
     }
+    out.push(freshRow(P, now));
     out.push('<p class="foot">통계적 참고용 · 투자 권유 아님<br>데이터 Yahoo Finance · ' + esc(U.fmtWhen(P.computedAt, now)) + ' 계산</p>');
     return { html: out.join(''), mounts: mounts };
+  }
+
+  // ------------------------------------------------------------------ 자료 상태
+  var FS_TXT = { fresh: '최신', lag1: '하루 늦음', late: '늦음', cached: '저장된 값' };
+  function freshSummary(F) {
+    if (!F) return { cls: 'unk', text: '자료 상태를 아직 확인하지 않았어요' };
+    var n = F.items.length, bad = F.items.filter(function (x) { return x.status === 'late' || x.status === 'cached'; });
+    var lag = F.items.filter(function (x) { return x.status === 'lag1'; });
+    if (bad.length) return { cls: 'bad', text: bad.map(function (x) { return x.name; }).join(', ') + ' 자료가 ' + (bad.every(function (x) { return x.status === 'cached'; }) ? '이번에 받아지지 않았어요' : '늦어요') + ' · 10분 뒤 다시 받아요' };
+    if (lag.length) return { cls: 'warn', text: (n - lag.length) + '개 최신 · ' + lag.map(function (x) { return x.name; }).join(', ') + ' 하루 늦음(Yahoo 지연)' };
+    return { cls: 'ok', text: '지표 ' + n + '개 모두 최신' };
+  }
+  function lastByMarket(F) {
+    var m = {}, nm = { krx: '한국', us: '미국', eu: '유럽', fx: '환율' };
+    F.items.forEach(function (x) { if (x.last && (!m[x.market] || x.last < m[x.market])) m[x.market] = x.last; });
+    return ['krx', 'us', 'eu', 'fx'].filter(function (k) { return m[k]; }).map(function (k) { return nm[k] + ' ' + U.fmtSlash(m[k]); }).join(' · ');
+  }
+  function freshRow(P, now) {
+    var F = P.fresh, sm = freshSummary(F);
+    return '<button type="button" class="card freshrow ' + sm.cls + '" data-act="tab" data-tab="info" data-to="fresh">' +
+      '<span class="fdot"></span><span class="ft"><b>자료 상태</b> ' + esc(sm.text) +
+      (F ? '<small>마지막 장 ' + esc(lastByMarket(F)) + ' · ' + esc(U.fmtWhen(F.at, now)) + ' 확인</small>' : '') + '</span>' + I.next + '</button>';
+  }
+  function freshCard(P, now) {
+    var F = P && P.fresh;
+    if (!F) return card(head('자료 상태', '새로 계산하면 지표 11개가 최신인지 확인해요'), '');
+    var sm = freshSummary(F);
+    return '<section class="card" id="fresh">' + head('자료 상태', U.fmtWhen(F.at, now) + ' 확인 · 각 시장의 마지막으로 끝난 장까지 들어왔는지 봐요') +
+      '<p class="fsum ' + sm.cls + '"><span class="fdot"></span>' + esc(sm.text) + '</p>' +
+      '<table class="ftab"><thead><tr><th>지표</th><th>마지막 장</th><th>값</th><th>상태</th></tr></thead><tbody>' +
+      F.items.map(function (x) {
+        var v = x.value == null ? '–' : (x.sym === '^TNX' ? x.value.toFixed(2) + '%' : x.value >= 1000 ? U.fmtInt(x.value) : x.value.toFixed(2));
+        var note = x.patched.length ? '<small>빈칸 채움</small>' : x.status === 'late' ? '<small>' + U.fmtSlash(x.expected) + ' 없음</small>' : '';
+        return '<tr><td>' + esc(x.name) + '</td><td class="num">' + (x.last ? U.fmtSlash(x.last) + '(' + U.DOW[U.dowOf(x.last)] + ')' : '–') + '</td><td class="num">' + v + '</td>' +
+          '<td><span class="fs ' + x.status + '">' + FS_TXT[x.status] + '</span>' + note + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<p class="note">빈칸 채움: Yahoo가 끝난 장의 종가를 비워 둬서 같은 Yahoo의 공식 마감 값으로 채운 것이에요</p>' +
+      '<button type="button" class="btn ghost wide" data-act="refresh">지금 다시 받기</button></section>';
   }
 
   function emptyState() {
@@ -314,6 +355,7 @@
       '<p>코스피가 다음 거래일에 어디쯤에서 끝날지 범위와 오를 확률로 계산해요. 아래 11개 지표의 변화로 중심을 잡고, 최근 출렁임과 지난 오차로 범위의 폭을 정해요. ' +
       '매일 그날 이전 자료로만 다시 학습하고, ' + (st ? (+st.from.slice(0, 4)) + '년 ' + (+st.from.slice(5, 7)) + '월' : '2025년 1월') + '부터 ' + nOut + '거래일을 이 방식으로 검증했어요.</p></div>' +
       '<div class="tags">' + VARS.map(function (v) { return '<span>' + esc(v) + '</span>'; }).join('') + '</div>'));
+    out.push(freshCard(P, D.nowMs()));
     out.push(card(head('안내', null) + '<ul class="list">' +
       '<li>통계적 참고용 계산이에요. 투자 권유가 아니에요.</li>' +
       '<li>시세는 Yahoo Finance에서 받아요. 늦거나 빠질 수 있어요.</li>' +
@@ -391,6 +433,11 @@
     var exp = U.expectedLastClose(Date.now());
     return P.out.result.baseDate < exp ? exp : null;
   }
+  // 코스피 종가가 늦었거나, 해외 지표가 늦거나 저장된 값으로 채워졌으면 다시 받는다
+  function needsRetry() {
+    var P = S.payload; if (!P || D.demo) return false;
+    return !!lagDate() || !!(P.fresh && !P.fresh.ok);
+  }
   function refresh(manual) {
     if (S.loading) return;
     if (D.demo) { if (manual) toast('데모 화면은 저장된 결과를 보여 줘요'); return; }
@@ -401,7 +448,7 @@
         S.payload = p; S.loading = null;
         // B2: 미국 자료가 덜 들어와 미리 보기로 계산했으면 10분 뒤 한 번 더 받아 본다
         if (p.out && p.out.previewReason && !previewRetry) previewRetry = setTimeout(function () { previewRetry = null; refresh(false); }, 10 * 60e3);
-        if (lagDate() && !lagRetry) lagRetry = setTimeout(function () { lagRetry = null; if (lagDate()) refresh(false); }, 10 * 60e3);
+        if (needsRetry() && !lagRetry) lagRetry = setTimeout(function () { lagRetry = null; if (needsRetry()) refresh(false); }, 10 * 60e3);
         return D.loadHL().then(function (hl) { S.hl = hl || {}; }).then(render, render);
       }, function (e) {
         S.loading = null; S.error = { code: e.code || 'ERROR', message: String(e.message || e) };
@@ -412,7 +459,7 @@
   function stale() {
     if (!S.payload) return true;
     var age = Date.now() - S.payload.computedAt;
-    return age > 10 * 60e3 || (!!lagDate() && age > 2 * 60e3);
+    return age > 10 * 60e3 || (needsRetry() && age > 2 * 60e3);
   }
 
   // ------------------------------------------------------------------ 알림
@@ -443,7 +490,7 @@
     var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
     var d = el.dataset;
     switch (d.act) {
-      case 'tab': goTab(d.tab); break;
+      case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
       case 'refresh': refresh(true); break;
       case 'period': S.period = d.p; var y = window.scrollY; render(); window.scrollTo(0, y); break;
       case 'notif':

@@ -306,6 +306,7 @@
       return compute(full, now, { fetchErrors: fetchErrors }).then(function (out) {
         var payload = { v: PAYLOAD_VERSION, computedAt: now, out: out, fetchErrors: fetchErrors, usedCached: Object.keys(fetchErrors),
           patched: got.patched || {}, fetchMs: Date.now() - t0 };
+        try { payload.fresh = root.Freshness.check(full, now, { fetchErrors: fetchErrors, patched: got.patched }); } catch (e) { payload.fresh = null; }
         return Promise.all([IDB.set('last', payload), IDB.set('series', { savedAt: now, series: full }), saveHL(got.hl)]).then(function () { return payload; });
       });
     }).catch(function (e) { if (!e.code) e.code = 'FETCH_FAILED'; throw e; });
@@ -315,7 +316,7 @@
   var buildInfo = null;
   function getBuild() {
     if (buildInfo) return Promise.resolve(buildInfo);
-    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.1.0' }; })
+    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.2.0' }; })
       .then(function (b) { buildInfo = b; return b; });
   }
   function checkUpdate() {
@@ -366,7 +367,15 @@
         result.mode = 'overnight'; result.scenarios = []; result.overnight = on.overnight;
       }
       if (scenario === 'usmissing') pre = { code: 'us_fetch_failed', symbols: ['^SOX'] };
-      return { v: PAYLOAD_VERSION, demo: true, scenario: scenario, computedAt: Date.parse(result.asOf), fetchErrors: {}, usedCached: [], out: { result: result, previewReason: pre } };
+      var fresh = null;
+      try {
+        // 데모: 2026-10-14 오전 실제 점검 결과와 같은 모양(마지막 날짜만 기준일로 맞춤)
+        var fake = {}; root.Freshness.ITEMS.forEach(function (it) { fake[it[0]] = { rows: [{ d: root.Freshness.expectedLast(it[2], demoNow), c: null }] }; });
+        fake['^KS11'] = { rows: [{ d: result.baseDate, c: result.baseClose }] };
+        fresh = root.Freshness.check(fake, demoNow, { fetchErrors: pre && pre.symbols ? pre.symbols.reduce(function (o, s) { o[s] = 'timeout'; return o; }, {}) : {},
+          patched: { '^KS11': [{ d: '2026-10-13' }], EWY: [{ d: '2026-10-13' }], MU: [{ d: '2026-10-13' }] } });
+      } catch (e) { fresh = null; }
+      return { v: PAYLOAD_VERSION, demo: true, scenario: scenario, computedAt: Date.parse(result.asOf), fetchErrors: {}, usedCached: [], fresh: fresh, out: { result: result, previewReason: pre } };
     });
   }
 

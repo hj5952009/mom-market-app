@@ -16,6 +16,7 @@ const KModel = require(path.join(W, 'js/model.js'));
 global.KModel = KModel;
 const Compute = require(path.join(W, 'js/compute.js'));
 const Series = require(path.join(W, 'js/series.js'));
+const Fresh = require(path.join(W, 'js/freshness.js'));
 
 let pass = 0, fail = 0;
 function ok(name, cond, info) {
@@ -211,6 +212,26 @@ eq('수 16:20 → 수', U.expectedLastClose(Date.parse('2026-10-14T16:20:00+09:0
 eq('토 → 금', U.expectedLastClose(Date.parse('2026-10-17T12:00:00+09:00')), '2026-10-16');
 eq('성탄절(휴장) 오후 → 전날', U.expectedLastClose(Date.parse('2026-12-25T17:00:00+09:00')), '2026-12-24');
 
+
+section('자료 신선도 점검');
+{
+  const T = Date.parse('2026-10-14T10:48:00+09:00');
+  eq('지금쯤 있어야 할 마지막 장 (수 10:48 KST)', ['krx', 'us', 'eu', 'fx'].map(m => Fresh.expectedLast(m, T)), ['2026-10-13', '2026-10-13', '2026-10-13', '2026-10-13']);
+  eq('수 06:00 KST(미국 화요일 장 끝) / 목 06:00 KST', [Fresh.expectedLast('us', Date.parse('2026-10-14T06:00:00+09:00')), Fresh.expectedLast('us', Date.parse('2026-10-15T06:00:00+09:00'))], ['2026-10-13', '2026-10-14']);
+  eq('추석 연휴 다음 날 아침 코스피', Fresh.expectedLast('krx', Date.parse('2026-09-28T08:00:00+09:00')), '2026-09-23');
+  eq('미국 휴장(9/7 노동절) 다음 날', Fresh.expectedLast('us', Date.parse('2026-09-08T12:00:00-04:00')), '2026-09-04');
+  const mk = d => ({ rows: [{ d: '2026-10-08', c: 1 }, { d: d, c: 2 }] });
+  const all = {}; Fresh.ITEMS.forEach(it => { all[it[0]] = mk('2026-10-13'); });
+  const f1 = Fresh.check(all, T, { patched: { EWY: [{ d: '2026-10-13' }] } });
+  eq('모두 최신', [f1.ok, f1.items.every(x => x.status === 'fresh'), f1.nPatched], [true, true, 1]);
+  const f2 = Fresh.check(Object.assign({}, all, { '^KS11': mk('2026-10-12'), '^STOXX50E': mk('2026-10-12') }), T, { fetchErrors: { '^SOX': 'timeout' } });
+  eq('코스피 하루 늦음=늦음, 유로스톡스 하루 늦음=허용, 못 받은 SOX=저장된 값',
+    [f2.ok, f2.items.find(x => x.sym === '^KS11').status, f2.items.find(x => x.sym === '^STOXX50E').status, f2.items.find(x => x.sym === '^SOX').status], [false, 'late', 'lag1', 'cached']);
+  eq('미국 장 마감 한국 시각 (서머타임)', Fresh.usCloseKst('2026-10-13'), { date: '2026-10-14', hour: 5 });
+  eq('미국 장 마감 한국 시각 (겨울)', Fresh.usCloseKst('2026-12-01'), { date: '2026-12-02', hour: 6 });
+  eq('2026년 코스피 휴장일 (실제 일봉에서 빠진 평일)', ['2026-07-17', '2026-09-24', '2026-10-09'].map(d => U.isTradingDay(d)), [false, false, false]);
+}
+
 section('예측 달력');
 {
   const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
@@ -237,14 +258,14 @@ eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rat
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.1.0', /versionName "2\.1\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.2.0', /versionName "2\.2\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
