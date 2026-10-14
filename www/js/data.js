@@ -189,17 +189,36 @@
   // 11개 지표 받기. 종목마다 받을 기간이 다를 수 있다(처음 10년치, 그다음 1달치).
   // query1/query2 번갈아 3번까지, 동시에 4개. state.aborted가 켜지면 남은 받기를 멈춘다.
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function chartUrl(host, sym, q) {
+    return 'https://' + host + '.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?' + q + '&_=' + Date.now();
+  }
+  // 최근 종가가 빈 막대가 있으면 같은 Yahoo의 공식 값으로 채운다 (Series.fillNullCloses 설명 참고).
+  function repairNulls(j, sym, host, patched) {
+    var now = Date.now();
+    if (!root.Series.nullCloses(j, now).length) return Promise.resolve(j);
+    return httpGet(chartUrl(host, sym, 'range=1d&interval=1d'), 10000).then(function (rj) {
+      var r = rj && rj.chart && rj.chart.result && rj.chart.result[0];
+      return r && r.meta ? r.meta : null;
+    }).catch(function () { return null; }).then(function (refMeta) {
+      var done = root.Series.fillNullCloses(j, refMeta, Date.now());
+      if (done.length) patched[sym] = done;
+      return j;
+    });
+  }
   function fetchSeries(syms, rangeOf, onOne, state) {
-    var out = {}, errors = {}, idx = 0, hosts = ['query1', 'query2'];
+    var out = {}, errors = {}, patched = {}, hl = null, idx = 0, hosts = ['query1', 'query2'];
+    var KS = root.KModel.TICKERS.kospi;
     function one(sym) {
       var attempt = 0;
       function tryOnce() {
         if (state.aborted) return Promise.resolve();
-        var url = 'https://' + hosts[attempt % 2] + '.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) +
-          '?range=' + rangeOf(sym) + '&interval=1d&includeAdjustedClose=true&_=' + Date.now();
-        return httpGet(url, 20000).then(function (j) {
+        var host = hosts[attempt % 2];
+        return httpGet(chartUrl(host, sym, 'range=' + rangeOf(sym) + '&interval=1d&includeAdjustedClose=true'), 20000).then(function (j) {
+          return repairNulls(j, sym, host, patched);
+        }).then(function (j) {
           var sr = root.KModel.parseChart(j, sym, Date.now());
           if (!sr.rows.length) throw new Error('empty series');
+          if (sym === KS) hl = root.Series.extractHL(j, Date.now());
           out[sym] = sr; onOne(sym);
         }).catch(function (e) {
           attempt++;
@@ -211,7 +230,25 @@
     }
     function next() { if (idx >= syms.length || state.aborted) return Promise.resolve(); var sy = syms[idx++]; return one(sy).then(next); }
     var ws = []; for (var w = 0; w < Math.min(4, syms.length); w++) ws.push(next());
-    return { out: out, errors: errors, done: Promise.all(ws) };
+    return { out: out, errors: errors, patched: patched, hl: function () { return hl; }, done: Promise.all(ws) };
+  }
+
+  // ---------------------------------------------------------------- 코스피 장중 고가·저가 (예측 달력)
+  // 처음 한 번(또는 2025년 초 자료가 없으면) 2년치를 받아 두고, 그다음부터는 시세 받을 때 같이 들어온 값을 이어 붙인다.
+  var HL_FROM = '2024-12-01';
+  function saveHL(fresh) {
+    return IDB.get('kospiHL').then(function (old) {
+      var m = root.Series.mergeHL(old && old.hl, fresh, HL_FROM);
+      var need = !Object.keys(m).some(function (d) { return d < '2025-01-10'; });
+      if (!need) return IDB.set('kospiHL', { savedAt: Date.now(), hl: m });
+      return httpGet(chartUrl('query1', root.KModel.TICKERS.kospi, 'range=2y&interval=1d'), 15000).then(function (j) {
+        return root.Series.mergeHL(root.Series.extractHL(j, Date.now()), m, HL_FROM);
+      }).catch(function () { return m; }).then(function (m2) { return IDB.set('kospiHL', { savedAt: Date.now(), hl: m2 }); });
+    }).catch(function () { return false; });
+  }
+  function loadHL() {
+    if (demo) return fetch('demo/kospi_hl.json').then(function (r) { return r.json(); }).then(function (x) { return x.hl || {}; }).catch(function () { return {}; });
+    return IDB.get('kospiHL').then(function (x) { return (x && x.hl) || {}; }).catch(function () { return {}; });
   }
 
   // onProgress(done, total)
@@ -246,7 +283,7 @@
         });
         if (!rebase.length || how === 'timeout') {
           rebase.forEach(function (sy) { errors[sy] = 'needs full reload'; });
-          return { merged: merged, errors: errors, timedOut: how === 'timeout' };
+          return { merged: merged, errors: errors, timedOut: how === 'timeout', patched: f.patched, hl: f.hl() };
         }
         var st2 = { aborted: false };
         var g = fetchSeries(rebase, function () { return root.Series.FULL_RANGE; }, function () {}, st2);
@@ -255,7 +292,8 @@
         return Promise.race([g.done, to2]).then(function () {
           clearTimeout(t2); st2.aborted = true;
           rebase.forEach(function (sy) { if (g.out[sy]) merged[sy] = g.out[sy]; else errors[sy] = g.errors[sy] || 'timeout'; });
-          return { merged: merged, errors: errors, timedOut: false };
+          var patched = f.patched; for (var k in g.patched) patched[k] = g.patched[k];
+          return { merged: merged, errors: errors, timedOut: false, patched: patched, hl: g.hl() || f.hl() };
         });
       });
     }).then(function (got) {
@@ -266,8 +304,9 @@
       if (!a || !b || !(a.c > 0) || Math.abs(a.c / b.c - 1) > 0.15) throw err('BAD_DATA', '코스피 최신 종가가 이상함');
       var now = Date.now();
       return compute(full, now, { fetchErrors: fetchErrors }).then(function (out) {
-        var payload = { v: PAYLOAD_VERSION, computedAt: now, out: out, fetchErrors: fetchErrors, usedCached: Object.keys(fetchErrors), fetchMs: Date.now() - t0 };
-        return Promise.all([IDB.set('last', payload), IDB.set('series', { savedAt: now, series: full })]).then(function () { return payload; });
+        var payload = { v: PAYLOAD_VERSION, computedAt: now, out: out, fetchErrors: fetchErrors, usedCached: Object.keys(fetchErrors),
+          patched: got.patched || {}, fetchMs: Date.now() - t0 };
+        return Promise.all([IDB.set('last', payload), IDB.set('series', { savedAt: now, series: full }), saveHL(got.hl)]).then(function () { return payload; });
       });
     }).catch(function (e) { if (!e.code) e.code = 'FETCH_FAILED'; throw e; });
   }
@@ -334,6 +373,6 @@
   root.Data = {
     LS: LS, IDB: IDB, Native: Native,
     get demo() { return demo; }, params: params, nowMs: nowMs,
-    loadLast: loadLast, refresh: refresh, checkUpdate: checkUpdate, getBuild: getBuild, PAYLOAD_VERSION: PAYLOAD_VERSION
+    loadLast: loadLast, refresh: refresh, loadHL: loadHL, checkUpdate: checkUpdate, getBuild: getBuild, PAYLOAD_VERSION: PAYLOAD_VERSION
   };
 })(typeof window !== 'undefined' ? window : globalThis);
