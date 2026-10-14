@@ -40,6 +40,9 @@ SHOTS.push(['08_tooltip_ladder_dark_x1.0', 'tab=predict', { theme: 'dark', viewp
 SHOTS.push(['11_sung_theme_light_x1.0', 'tab=sung&sg=theme&sgt=5', { theme: 'light' }]);
 SHOTS.push(['11_sung_theme_dark_x1.3', 'tab=sung&sg=theme&sgt=1&scale=1.3', { theme: 'dark' }]);
 SHOTS.push(['11_sung_posts_light_x1.0', 'tab=sung&sg=posts&sgopen=224440720546', { theme: 'light', viewportOnly: true }]);
+SHOTS.push(['11_sung_model_light_x1.0', 'tab=sung&sg=model', { theme: 'light' }]);
+SHOTS.push(['11_sung_model_dark_x1.3', 'tab=sung&sg=model&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['08_tooltip_sgidx_light_x1.0', 'tab=sung&sg=model', { theme: 'light', viewportOnly: true, tap: ['#c-sgidx', 0.7, 0.3] }]);
 SHOTS.push(['11_sung_learn_light_x1.0', 'tab=sung&sg=learn', { theme: 'light' }]);
 SHOTS.push(['08_tooltip_heat_light_x1.0', 'tab=sung', { theme: 'light', viewportOnly: true, scrollTo: '#c-sgheat', tap: ['#c-sgheat', 0.9, 0.3] }]);
 SHOTS.push(['10_info_fresh_usmissing_light_x1.0', 'tab=info&scenario=usmissing', { theme: 'light' }]);

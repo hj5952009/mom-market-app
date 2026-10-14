@@ -138,6 +138,7 @@
     // 오늘 쓸 계수: 모든 날로 다시 맞춤
     var all = rows, yA = all.map(function (q) { return q.y; });
     var wFinal = all.length > 20 ? fitLogit(all.map(function (q) { return [1, q.lp, q.S]; }), yA) : null;
+    var wBase = all.length > 20 ? fitLogit(all.map(function (q) { return [1, q.lp]; }), yA) : null;
     var series = dates.map(function (d, i) { return [d, ix.S[i] == null ? null : Math.round(ix.S[i] * 1000) / 1000]; });
     return {
       params: { halfLife: HALF_LIFE, cutoff: CUTOFF, minTrain: MIN_TRAIN, l2: L2 },
@@ -145,15 +146,16 @@
       raw: raw, base: score(out.base), plus: score(out.plus), tone: score(out.tone),
       duel: { plusWins: plusWins, baseWins: baseWins, z: signZ, p: pNorm(signZ) },
       fwd1: fwd(1), fwd5: fwd(5), fwd20: fwd(20), resid: resid,
-      coef: wFinal, series: series
+      coef: wFinal, coefBase: wBase, meanS: rows.length ? rows.reduce(function (a, q) { return a + q.S; }, 0) / rows.length : null, series: series
     };
   }
 
   // 오늘의 관점 지수와 '관점 반영' 오를 확률
-  function today(posts, dateStr, pUp, coef) {
+  // pBase: 모델 확률만 다시 보정한 값(비교 기준), pPlus: 관점까지 더한 값 → 관점의 몫 = pPlus − pBase
+  function today(posts, dateStr, pUp, coef, coefBase) {
     var ix = dailyIndex(posts, [dateStr]);
     var S = ix.S[0];
-    return { S: S, weight: ix.W[0], pPlus: S == null || !coef ? null : pred(coef, [1, logit(pUp), S]) };
+    return { S: S, weight: ix.W[0], pBase: coefBase ? pred(coefBase, [1, logit(pUp)]) : null, pPlus: S == null || !coef ? null : pred(coef, [1, logit(pUp), S]) };
   }
 
   var SungModel = { dailyIndex: dailyIndex, evaluate: evaluate, today: today, fitLogit: fitLogit, corrT: corrT, logit: logit, sig: sig, HALF_LIFE: HALF_LIFE, MIN_TRAIN: MIN_TRAIN };

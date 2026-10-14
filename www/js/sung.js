@@ -39,6 +39,7 @@
     var body = '<div class="sp-b"><p>' + esc(p.s) + '</p>' +
       (p.v ? '<p class="sp-v"><b>관점</b> ' + esc(p.v) + '</p>' : '') +
       (p.p ? '<p class="sp-v"><b>원칙</b> ' + esc(p.p) + '</p>' : '') +
+      (p.st && p.st[1] ? '<p class="sp-v"><b>증시 관점 점수</b> <span class="num">' + (p.st[0] > 0 ? '+' : p.st[0] < 0 ? '−' : '') + Math.abs(p.st[0]) + '</span> <small>(−2 경계 ~ +2 낙관, 1~4주 기준)</small></p>' : '') +
       '<div class="sp-tags">' + p.th.map(function (t) { return '<button type="button" class="tag" data-act="sgTheme" data-t="' + t + '">' + esc(SHORT[t]) + '</button>'; }).join('') + '</div>' +
       '<div class="sp-act"><button type="button" class="btn ghost" data-act="sgOpen" data-id="' + p.id + '">원문 보기</button>' +
       '<button type="button" class="btn ghost" data-act="sgFav" data-id="' + p.id + '" aria-pressed="' + fav + '">' + (fav ? '★ 저장됨' : '☆ 저장') + '</button></div></div>';
@@ -58,7 +59,7 @@
 
   // ------------------------------------------------------------------ 하위 화면
   function subNav() {
-    return '<div class="seg sgnav" role="group" aria-label="성상현 화면">' + [['sum', '요약'], ['theme', '주제'], ['posts', '글'], ['learn', '원칙·용어']].map(function (x) {
+    return '<div class="seg sgnav" role="group" aria-label="성상현 화면">' + [['sum', '요약'], ['model', '모델'], ['theme', '주제'], ['posts', '글'], ['learn', '원칙']].map(function (x) {
       return '<button type="button" data-act="sgSub" data-s="' + x[0] + '" aria-pressed="' + (ST.sub === x[0]) + '">' + x[1] + '</button>';
     }).join('') + '</div>';
   }
@@ -148,6 +149,71 @@
     return out.join('');
   }
 
+
+  // ------------------------------------------------------------------ 관점 모델
+  var EVAL = { key: null, res: null };
+  function evalFor(P) {
+    var r = P && P.out && P.out.result; if (!r || !root.SungModel) return null;
+    var key = P.computedAt + ':' + r.history.length;
+    if (EVAL.key !== key) { EVAL.key = key; EVAL.res = root.SungModel.evaluate(r.history, DATA.posts); }
+    return EVAL.res;
+  }
+  function pp(v, d) { return v == null ? '–' : (v * 100).toFixed(d == null ? 1 : d) + '%'; }
+  function sgn(v, d) { return v == null ? '–' : (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d == null ? 2 : d); }
+  function stanceWord(S) { return S == null ? '' : S <= -0.2 ? '경계 쪽' : S >= 0.2 ? '낙관 쪽' : '중립'; }
+  function pTxt(p) { return p < 0.001 ? '0.001 미만' : p.toFixed(p < 0.01 ? 3 : 2); }
+  function pageModel(H, P, mounts) {
+    var out = [], r = P && P.out && P.out.result;
+    if (!r) return H.card('<div class="empty"><h2>예측 결과가 아직 없어요</h2><p>예측 탭에서 먼저 계산해 주세요</p></div>');
+    var E = evalFor(P); if (!E || !E.period) return H.card('<div class="empty"><h2>검증할 자료가 부족해요</h2></div>');
+    var now = H.now(), st = U.forecastStatus(r, P.out.previewReason, now);
+    var T = root.SungModel.today(DATA.posts, st.target, r.pUp, E.coef, E.coefBase);
+    var stale = T.S == null;
+    // 1) 오늘의 관점 지수
+    out.push(H.card(H.head('성상현 관점 지수', '블로그 글의 증시 관점(1~4주)을 날마다 하나의 숫자로') +
+      (stale ? '<p class="note">최근 블로그 글이 부족해 오늘 지수를 계산하지 않았어요 (자료는 ' + dLabel(DATA.source.last) + '까지)</p>' :
+        '<div class="sgidx"><div class="kpi"><div class="v">' + sgn(T.S) + '</div><div class="l">' + U.fmtMD(st.target) + ' 아침 기준 · ' + stanceWord(T.S) + '</div></div>' +
+        '<div class="sgscale"><span>−2 경계</span><span>0 중립</span><span>+2 낙관</span><i style="left:' + Math.max(0, Math.min(100, (T.S + 2) / 4 * 100)).toFixed(1) + '%"></i></div></div>') +
+      '<p class="note">글마다 앞으로 1~4주 증시에 대한 관점을 −2~+2로 매기고, 예측일 아침 8시 30분 전에 쓴 글만 최근 글일수록 무겁게(반감기 7일) 평균했어요</p>'));
+    // 2) 지수와 코스피 그래프
+    var hist = r.history, dates = hist.map(function (h) { return h.date; });
+    var ix = root.SungModel.dailyIndex(DATA.posts, dates);
+    out.push(H.card(H.head('관점 지수와 코스피', '빨간 면은 낙관 쪽, 파란 면은 경계 쪽') + H.chartBox('c-sgidx')));
+    mounts.push(function () { H.Ch.sungIndex(H.$('c-sgidx'), { dates: dates, S: ix.S, K: hist.map(function (h) { return h.actual; }) }); });
+    // 3) 오늘 예측에 더하면
+    var diff = T.pPlus == null || T.pBase == null ? null : T.pPlus - T.pBase;
+    out.push(H.card(H.head(U.fmtTitleDate(st.target) + ' 오를 확률에 더해 보면', '실험 계산 · 앱의 기본 예측은 바뀌지 않아요') +
+      '<div class="sgcmp"><div><small>모델</small><b class="num">' + Math.round(r.pUp * 100) + '%</b></div>' +
+      '<div><small>다시 보정</small><b class="num">' + (T.pBase == null ? '–' : Math.round(T.pBase * 100) + '%') + '</b></div><div class="arr">→</div>' +
+      '<div><small>+ 성상현 관점</small><b class="num">' + (T.pPlus == null ? '–' : Math.round(T.pPlus * 100) + '%') + '</b></div></div>' +
+      (diff == null ? '' : '<p class="sgdiff">관점 지수가 더한 몫 <b class="num ' + (diff >= 0 ? 'up-t' : 'down-t') + '">' + (diff >= 0 ? '+' : '−') + Math.abs(diff * 100).toFixed(1) + '%p</b></p>') +
+      '<p class="note">\'다시 보정\'은 모델 확률을 지난 성적에 맞춰 고친 값(비교 기준)이고, 관점의 몫은 그 차이예요. 그는 평소에도 낙관 쪽(지수 평균 ' + sgn(E.meanS) + ')이라, 지수가 평소보다 높을 때만 확률이 올라가요. 계수는 지금까지의 모든 날로 맞췄어요</p>'));
+    // 4) 검증 결과
+    var gain = E.plus.hit - E.base.hit, sig = E.duel.p < 0.05 && gain > 0 && E.plus.brier < E.base.brier;
+    var verdict = sig ? '관점을 더한 쪽이 통계적으로 의미 있게 나았어요.' :
+      '관점을 더해도 통계적으로 의미 있는 개선은 없었어요. 그래서 앱의 기본 예측에는 넣지 않고 참고로만 보여 드려요.';
+    var row = function (name, x, note) { return '<tr><td>' + name + (note ? '<small>' + note + '</small>' : '') + '</td><td class="num">' + pp(x.hit) + '</td><td class="num">' + (x.brier == null ? '–' : x.brier.toFixed(4)) + '</td></tr>'; };
+    out.push(H.card(H.head('검증 결과', dLabel(E.period[0]) + ' ~ ' + dLabel(E.period[1]) + ' · ' + E.base.n + '거래일 · 날마다 그 전 자료로만 다시 맞춤') +
+      '<p class="sgverdict ' + (sig ? 'ok' : 'no') + '">' + verdict + '</p>' +
+      '<table class="mtab sgtab"><thead><tr><th>예측</th><th>방향 적중</th><th>브라이어<small>낮을수록 좋음</small></th></tr></thead><tbody>' +
+      '<tr><td>모델 그대로</td><td class="num">' + pp(E.raw.hit) + '</td><td class="num">–</td></tr>' +
+      row('모델 다시 보정', E.base, '비교 기준') + row('+ 성상현 관점 지수', E.plus) + row('+ 글 전체 톤', E.tone, '보조 실험') + '</tbody></table>' +
+      '<p class="note">두 예측의 방향이 갈린 ' + (E.duel.plusWins + E.duel.baseWins) + '일 중 관점 반영 쪽이 ' + E.duel.plusWins + '일, 기준 쪽이 ' + E.duel.baseWins + '일 맞혔어요 (p=' + pTxt(E.duel.p) + ')</p>' +
+      '<h3 class="sgh3">지수와 그 뒤 코스피 수익률의 상관</h3><table class="mtab sgtab"><thead><tr><th>기간</th><th>상관</th><th>p값<small>0.05 미만이면 의미</small></th></tr></thead><tbody>' +
+      [['다음 날', E.fwd1], ['5거래일', E.fwd5], ['20거래일', E.fwd20], ['모델이 못 맞힌 부분', E.resid]].map(function (x) {
+        return '<tr><td>' + x[0] + '</td><td class="num">' + (x[1] ? sgn(x[1].r) : '–') + '</td><td class="num">' + (x[1] ? pTxt(x[1].p) : '–') + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<p class="note">상관이 0에 가까우면 지수로 코스피 방향을 미리 알기 어렵다는 뜻이에요. 그는 거의 늘 장기 낙관 쪽이라(지수가 0보다 작은 날이 적어요) 짧은 방향을 가르는 신호로는 약해요</p>'));
+    // 5) 만든 방법
+    var nRel = DATA.posts.filter(function (p) { return p.st && p.st[1] >= 1; }).length;
+    out.push(H.card(H.head('이 모델을 만든 방법', null) + '<ol class="sgdots sgsteps">' +
+      '<li>글 ' + U.fmtInt(DATA.posts.length) + '개 중 증시 전망과 관련 있는 ' + U.fmtInt(nRel) + '개에 앞으로 1~4주 증시 관점 점수(−2~+2)를 매겼어요. 글 내용만 보고, 그 뒤 시장이 어떻게 됐는지는 보지 않았어요</li>' +
+      '<li>예측일 아침 8시 30분 전 글만, 최근 글일수록 무겁게 평균해 날마다 지수를 만들었어요</li>' +
+      '<li>기존 모델의 오를 확률에 지수를 더한 로지스틱 회귀를 날마다 그 전 날들로만 다시 맞춰, 처음 ' + root.SungModel.MIN_TRAIN + '일 뒤부터 성적을 쟀어요</li>' +
+      '<li>범위(80%·95%)는 바꾸지 않았어요. 지수와 그날 출렁임 크기 사이에도 뚜렷한 관계가 없었어요</li></ol>'));
+    return out.join('');
+  }
+
   // H: app.js가 넘겨 주는 도구 {card, head, chartBox, $, Ch, setBar, render, openUrl, payload}
   function page(H) {
     H.setBar('성상현 · 매크로 비욘드', '<span class="chip demo">베타</span>', false);
@@ -160,6 +226,7 @@
     if (ST.sub === 'theme') body = pageTheme(H, P, mounts);
     else if (ST.sub === 'posts') body = pagePosts(H);
     else if (ST.sub === 'learn') body = pageLearn(H);
+    else if (ST.sub === 'model') body = pageModel(H, P, mounts);
     else body = pageSum(H, P, mounts);
     return { html: subNav() + body + '<p class="foot">블로그 \'매크로 비욘드\'(성상현) 글을 앱이 요약했어요 · 원문과 판단은 블로그에서<br>통계적 참고용 · 투자 권유 아님 · ' + dLabel(DATA.source.collectedAt.slice(0, 10)) + ' 수집</p>', mounts: mounts };
   }

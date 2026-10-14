@@ -687,8 +687,51 @@
     });
   }
 
+  /* 성상현 관점 지수(위)와 코스피 종가(아래), 같은 날짜 축. d: {dates, S:[number|null], K:[number]} */
+  function sungIndex(el, d) {
+    var D = d.dates, S = d.S, K = d.K, n = D.length;
+    mount(el, '성상현 관점 지수와 코스피', function (w, F) {
+      var labW = Math.max(tw('+1.0', F), tw('00,000', F * 0.9)) + 6, x0 = labW, x1 = w - 4, h1 = 120, gap = F * 1.6, h2 = 90, axisH = F * 1.7, h = h1 + gap + h2 + axisH, s = '';
+      var x = lin(0, n - 1, x0, x1), ys = lin(-1, 1, h1 - 4, 4);
+      var kv = K.filter(function (v) { return v > 0; }), kmin = Math.min.apply(null, kv), kmax = Math.max.apply(null, kv), kp = (kmax - kmin) * 0.06;
+      var yk = lin(kmin - kp, kmax + kp, h1 + gap + h2, h1 + gap);
+      [-1, -0.5, 0, 0.5, 1].forEach(function (t) { s += L(x0, ys(t), x1, ys(t), t === 0 ? 'c-axis' : 'c-grid'); s += T(0, ys(t) + F * 0.35, (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t).toFixed(1), F, 'c-txt num', 'start'); });
+      // 0 위는 상승색, 아래는 하락색 면
+      var segs = [], cur = [];
+      for (var i = 0; i < n; i++) { if (S[i] == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(i); }
+      if (cur.length) segs.push(cur);
+      segs.forEach(function (sg) {
+        var up = 'M' + n1(x(sg[0])) + ',' + n1(ys(0)), dn = up;
+        sg.forEach(function (j) { up += 'L' + n1(x(j)) + ',' + n1(ys(Math.max(0, S[j]))); dn += 'L' + n1(x(j)) + ',' + n1(ys(Math.min(0, S[j]))); });
+        up += 'L' + n1(x(sg[sg.length - 1])) + ',' + n1(ys(0)) + 'Z'; dn += 'L' + n1(x(sg[sg.length - 1])) + ',' + n1(ys(0)) + 'Z';
+        s += P(up, 'w-up') + P(dn, 'w-down');
+        s += P(poly(sg.map(function (j) { return [x(j), ys(S[j])]; })), 'c-line');
+      });
+      s += T(x0, h1 + gap - F * 0.4, '코스피', F, 'c-lab', 'start');
+      var kt = niceTicks(kmin, kmax, 3);
+      kt.forEach(function (t) { s += L(x0, yk(t), x1, yk(t), 'c-grid'); });
+      s += P(poly(K.map(function (v, j) { return v > 0 ? [x(j), yk(v)] : null; }).filter(Boolean)), 'c-line');
+      kt.forEach(function (t) { s += T(0, yk(t) + F * 0.3, U.fmtInt(t), F * 0.9, 'c-txt num', 'start'); });
+      var lastR = -1e9, yw = tw('2026.01', F);
+      D.forEach(function (ds, j) {
+        if (j && ds.slice(5, 7) === D[j - 1].slice(5, 7)) return;
+        var m = +ds.slice(5, 7); if (m !== 1 && m !== 7) return;
+        var xx = x(j); if (xx - yw / 2 < lastR + 8 || xx + yw / 2 > w || xx - yw / 2 < 0) return;
+        s += T(xx, h - F * 0.35, ds.slice(0, 4) + '.' + ds.slice(5, 7), F, 'c-txt num', 'middle'); lastR = xx + yw / 2;
+      });
+      return {
+        h: h, svg: s, stops: [[x(n - 1), ys(S[n - 1] || 0)]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px))));
+          return { cx: x(j), cy0: 0, cy1: h1 + gap + h2, dots: (S[j] == null ? [] : [{ x: x(j), y: ys(S[j]) }]).concat(K[j] > 0 ? [{ x: x(j), y: yk(K[j]) }] : []),
+            title: U.fmtDateLong(D[j]), rows: [{ label: '관점 지수', value: S[j] == null ? '–' : (S[j] >= 0 ? '+' : '−') + Math.abs(S[j]).toFixed(2) }, { label: '코스피', value: K[j] > 0 ? U.fmtInt(K[j]) : '–' }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
-    heat: heat, monthBars: monthBars,
+    heat: heat, monthBars: monthBars, sungIndex: sungIndex,
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
     bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,
     redrawAll: redrawAll, reset: reset, _tw: tw, _niceTicks: niceTicks

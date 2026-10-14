@@ -393,3 +393,21 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .sgterms{ margin: 6px 0 0; }
 .sgterms div{ padding: 8px 0; border-top: 1px solid var(--line); }
 .sgterms dt{ font-weight: 700; } .sgterms dd{ margin: 2px 0 0; color: var(--ink-2); font-size: .9375rem; }
+
+/* 관점 모델 */
+.sgidx{ display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.sgidx .kpi{ padding: 4px 0; }
+.sgscale{ position: relative; display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); padding-top: 14px;
+  background: linear-gradient(90deg, var(--down-wash), transparent 50%, var(--up-wash)) top / 100% 8px no-repeat; border-radius: 4px; }
+.sgscale i{ position: absolute; top: -3px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: var(--ink); }
+.sgcmp{ display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.sgcmp small{ display: block; font-size: .8125rem; color: var(--muted); }
+.sgcmp b{ font-family: var(--numfont); font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.sgcmp .arr{ color: var(--muted); font-size: 1.25rem; }
+.sgdiff{ margin-top: 8px; font-size: .9375rem; } .sgdiff b{ font-weight: 700; margin-left: 4px; }
+.sgcmp b{ font-size: 1.75rem; }
+.sgverdict{ margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-weight: 600; font-size: .9375rem; }
+.sgverdict.no{ background: var(--shade); color: var(--ink); }
+.sgverdict.ok{ background: var(--cal-80); color: var(--ink); }
+.sgtab td small, .sgtab th small{ display: block; font-size: .6875rem; color: var(--muted); font-weight: 500; }
+.sgsteps li + li{ margin-top: 6px; }

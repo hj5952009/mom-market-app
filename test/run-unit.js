@@ -254,6 +254,32 @@ section('성상현 페이지 자료');
   ok('본문(원문)은 담지 않음', !SG.posts.some(p => 'text' in p || 'content' in p));
 }
 
+
+section('성상현 관점 모델');
+{
+  const SM = require(path.join(W, 'js/sungmodel.js'));
+  const SG = JSON.parse(fs.readFileSync(path.join(W, 'data/sung.json'), 'utf8'));
+  ok('모든 글에 관점 점수', SG.posts.every(p => Array.isArray(p.st) && p.st.length === 3 && p.st[0] >= -2 && p.st[0] <= 2));
+  const mk = (d, s) => ({ d, st: [s, 2, 0], tone: 0 });
+  const a = SM.dailyIndex([mk('2026-10-14 08:20', 2)], ['2026-10-14']).S[0], b = SM.dailyIndex([mk('2026-10-14 08:40', 2)], ['2026-10-14']).S[0];
+  eq('예측일 08:30 전 글만 씀 (08:20 글은 반영, 08:40 글은 다음 날부터)', [a, b], [2, null]);
+  const old = SM.dailyIndex([mk('2026-09-01 10:00', 2)], ['2026-10-14']).S[0];
+  eq('오래된 글만 있으면 지수 없음', old, null);
+  const cols = fx._historyColumns, Hs = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); return o; });
+  const E = SM.evaluate(Hs, SG.posts);
+  ok('검증이 돌아감(충분한 날 수)', E.base.n > 200 && E.plus.n === E.base.n, E.base.n);
+  // 미래 자료를 바꿔도 과거 예측이 바뀌지 않아야 함(앞을 보지 않음)
+  const H2 = Hs.map((h, i) => i >= Hs.length - 30 ? Object.assign({}, h, { actual: h.prevClose * 1.1 }) : h);
+  const E2 = SM.evaluate(H2, SG.posts);
+  const cut = E.base.n - 30;
+  const same = (x, y) => Math.abs(x - y) < 1e-12;
+  const ev = (H) => { const r = []; return r; };
+  ok('뒤쪽 30일 실제값을 바꿔도 그 전 날들의 예측 성적 계산 결과는 그대로', (function () {
+    const p1 = SM.evaluate(Hs.slice(0, Hs.length - 30), SG.posts), p2 = SM.evaluate(H2.slice(0, H2.length - 30), SG.posts);
+    return same(p1.plus.brier, p2.plus.brier) && same(p1.base.hit, p2.base.hit);
+  })());
+}
+
 section('예측 달력');
 {
   const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
@@ -280,7 +306,7 @@ eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rat
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));

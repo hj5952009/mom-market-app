@@ -391,7 +391,7 @@
   var H = {
     card: card, head: head, chartBox: chartBox, $: $, Ch: Ch, setBar: setBar,
     render: function () { render(); }, keep: function () { keepScroll(); }, openUrl: function (u) { N.openUrl(u); },
-    get payload() { return S.payload; }
+    get payload() { return S.payload; }, now: function () { return D.nowMs(); }
   };
   function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
   var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, info: pageInfo };
