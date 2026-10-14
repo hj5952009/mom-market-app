@@ -11,11 +11,12 @@ def fix(s):
     s=s.replace('추천한다','소개한다').replace('추천했다','소개했다').replace('추천하며','소개하며').replace('추천도서','소개 도서').replace('추천 도서','소개 도서').replace('추천','소개')
     return s
 IND={'fed':0,'us10y':1,'us2y':2,'cpi':3,'jobs':4,'oil':5,'usd':6,'krw':7,'gold':8,'ai':9,'semis':10,'bigtech':11,'credit':12,'liquidity':13,'fiscal':14,'china':15,'em':16,'kospi':17,'sp500':18,'vix':19,'housing':20,'btc':21}
+ST=json.load(open('stance/all.json'))
 posts=[]
 for p in P:
     posts.append({'id':p['id'],'d':p['date'][:16],'c':CATS.index(p['cat']),'t':p['title'],'o':fix(p['oneLine']),'s':fix(p['summary']),
       'k':KINDS.index(p['kind']) if p['kind'] in KINDS else 7,'th':[TH.index(t) for t in p['themes'] if t in TH],
-      'v':fix(p['view']),'p':fix(p['principle']),'tone':{'긍정':1,'중립':0,'경계':-1}.get(p['tone'],0),'lv':p['level'],'val':p['value'],'lk':p['likes']})
+      'v':fix(p['view']),'st':ST[p['id']],'p':fix(p['principle']),'tone':{'긍정':1,'중립':0,'경계':-1}.get(p['tone'],0),'lv':p['level'],'val':p['value'],'lk':p['likes']})
 # theme monthly counts
 months=sorted({p['d'][:7] for p in posts})
 tm=[[0]*len(months) for _ in TH]
