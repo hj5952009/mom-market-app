@@ -5,6 +5,8 @@
 
 2.1.0: Yahoo가 끝난 날 종가를 빈칸(null)으로 줄 때 같은 Yahoo의 공식 값(전일 종가·마지막 장 가격)으로 채워, 예측 날짜가 하루 밀리던 문제를 고침. 큰 숫자는 앱에 넣은 굵은 세리프(Noto Serif Bold, OFL)로 표시.
 
+2.2.1: 새 버전 확인을 공개 저장소 `hj5952009/mom-market-releases`(설치 파일만 올림)로 옮김. 이 소스 저장소는 비공개로 전환.
+
 2.2.0: 지표 11개의 '자료 상태' 점검(각 시장 시각·휴장일 기준으로 마지막 장까지 들어왔는지)을 예측·정보 탭에 표시하고, 늦거나 못 받은 지표가 있으면 10분 뒤 다시 받음.
 매일 자료 점검: `.github/workflows/data-health.yml`이 평일 07:20·16:30(KST)에 앱과 같은 코드로 Yahoo 자료를 받아 점검(`tools/health-check.js`), 문제가 계속되면 실패로 표시되어 GitHub가 메일로 알림.
 
@@ -34,7 +36,7 @@ v2(2.0.0)는 v1을 전면 재작성했습니다. 내 종목·용어 사전·상�
 3. APK를 Actions 아티팩트로 올리고, **Releases**에 `v1.0.0-<실행번호>` 태그로 `market-compass.apk`를 붙입니다.
 
 `versionCode`는 Actions 실행 번호라서 새 빌드는 항상 "업데이트"로 설치됩니다. 앱의 더보기 › 새 버전 확인은
-`https://api.github.com/repos/hj5952009/mom-market-app/releases/latest`의 태그 번호와 앱에 찍힌 빌드 번호(`www/build.json`, CI가 기록)를 비교합니다.
+`https://api.github.com/repos/hj5952009/mom-market-releases/releases/latest`의 태그 번호와 앱에 찍힌 빌드 번호(`www/build.json`, CI가 기록)를 비교합니다.
 
 로컬에서 웹 화면만 보려면: 아무 정적 서버로 `www/`를 열면 됩니다(네이티브가 아니면 자동으로 **체험용(데모) 모드**, 묶어 둔 실제 모델 결과 사용).
 
@@ -62,7 +64,7 @@ python3 tools/make-icons.py   # 런처·알림·스플래시 아이콘 다시 �
 - 저장소는 **공개(Public)** 로 둡니다. 어머님 폰에서 로그인 없이 Releases를 내려받고, 앱의 '새 버전 확인'(인증 없는 GitHub API)이 동작하게 하려는 결정입니다.
 - 모든 빌드가 같은 서명이어야 기존 앱 위에 업데이트 설치가 되므로, `android/app/family-release.keystore`(별칭 `family`)와 비밀번호(`android/app/build.gradle`에 평문)를 **저장소에 그대로 넣었습니다.**
 - 그래서 **누구나 이 keystore로 같은 서명의 가짜 "업데이트" APK를 만들 수 있습니다.** 폰은 그런 APK도 정상 업데이트로 받아들입니다.
-  **이 저장소의 Releases(https://github.com/hj5952009/mom-market-app/releases)에서 받은 `market-compass.apk` 말고는 어떤 APK도 설치하지 마세요.**
+  **이 저장소의 Releases(https://github.com/hj5952009/mom-market-releases/releases)에서 받은 `market-compass.apk` 말고는 어떤 APK도 설치하지 마세요.**
   카톡·문자·다른 사이트로 온 "시장 나침반 업데이트" 파일은 열지 않습니다.
 - 이 keystore를 다른 앱이나 스토어 배포에 쓰지 마세요. keystore를 바꾸면 폰에서 기존 앱을 지우고 다시 설치해야 합니다(저장된 시세·설정이 지워짐).
 
