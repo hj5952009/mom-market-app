@@ -31,6 +31,8 @@ jobs:
           node-version: '22'
       - name: Check Yahoo data with the app's own code
         run: node tools/health-check.js
+        env:
+          HEALTH_ATTEMPTS: ${{ github.event_name == 'schedule' && '3' || '1' }}
       - name: Keep result
         if: always()
         uses: actions/upload-artifact@v4

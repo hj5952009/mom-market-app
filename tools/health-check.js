@@ -97,6 +97,14 @@ function markdown(h) {
     await sleep(GAP_MS);
   }
   fs.writeFileSync(path.join(process.cwd(), 'health.json'), JSON.stringify(h, null, 1));
+  // GitHub 실행 화면의 알림(annotation)으로도 남긴다 (메일·API에서 바로 보임)
+  if (process.env.GITHUB_ACTIONS) {
+    const one = s => String(s).replace(/\r?\n/g, ' ').replace(/%/g, '%25');
+    if (h.ok) console.log('::notice title=자료 정상::' + one(h.fresh.items.map(x => x.sym + ' ' + x.last).join(', ') + (h.result ? ' → 예측 ' + h.result.target + ' ' + h.result.status : '')));
+    h.problems.slice(0, 9).forEach(p => console.log('::error title=자료 문제::' + one(p)));
+    const pt = h.fresh.items.filter(x => x.patched.length);
+    if (pt.length) console.log('::warning title=빈 종가 채움::' + one(pt.map(x => x.sym + ' ' + x.patched.join(',')).join(', ')));
+  }
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, markdown(h));
   process.exit(h.ok ? 0 : 1);
 })().catch(e => { console.error(e); process.exit(2); });
