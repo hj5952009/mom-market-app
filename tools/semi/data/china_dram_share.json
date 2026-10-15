@@ -1,0 +1,246 @@
+{
+ "description": "Chinese share of global DRAM market (mainly CXMT) 2020-2026, plus YMTC NAND share points. Each row states basis (revenue vs bit shipments vs capacity) and the publisher; forecasts flagged with forecast=true.",
+ "rows": [
+  {
+   "period": "2020",
+   "company_or_scope": "CXMT",
+   "share_pct": 0.0,
+   "basis": "unspecified (DRAM market share)",
+   "source": "Qianzhan Industrial Research Institute via DIGITIMES Asia",
+   "source_url": "https://www.digitimes.com/news/a20250421PD218.html",
+   "note": "described as starting from roughly zero"
+  },
+  {
+   "period": "2023",
+   "company_or_scope": "CXMT",
+   "share_pct": 5.0,
+   "basis": "unspecified (DRAM market share)",
+   "source": "Qianzhan Industrial Research Institute via DIGITIMES Asia",
+   "source_url": "https://www.digitimes.com/news/a20250421PD218.html"
+  },
+  {
+   "period": "2024",
+   "company_or_scope": "CXMT",
+   "share_pct": 5.0,
+   "basis": "unspecified (DRAM market share)",
+   "source": "Qianzhan via Korea JoongAng Daily",
+   "source_url": "https://www.koreajoongangdaily.com/business/chinas-cxmt-emerges-as-silent-threat-to-samsung-micron/11938451"
+  },
+  {
+   "period": "2024",
+   "company_or_scope": "All Chinese DRAM makers",
+   "share_pct": 5.0,
+   "basis": "TrendForce composite (capacity, quality, actual market impact); approx.",
+   "source": "TrendForce (via Nikkei Asia/KrASIA)",
+   "source_url": "https://amp.kr-asia.com/china-makes-inroads-in-dram-chips-in-challenge-to-samsung-and-micron"
+  },
+  {
+   "period": "2024",
+   "company_or_scope": "CXMT",
+   "share_pct": 10.0,
+   "basis": "wafer-capacity equivalent of global DRAM output (not sales); approx.",
+   "source": "Nikkei Asia (industry executives/analysts)",
+   "source_url": "https://amp.kr-asia.com/china-makes-inroads-in-dram-chips-in-challenge-to-samsung-and-micron",
+   "note": "actual sales share described as much lower"
+  },
+  {
+   "period": "2025 (forecast made Jan 2025)",
+   "company_or_scope": "All Chinese DRAM makers",
+   "share_pct": 10.0,
+   "basis": "TrendForce composite; forecast",
+   "source": "TrendForce",
+   "source_url": "https://www.trendforce.com/news/2025/01/16/news-chinese-memory-makers-led-by-cxmt-advance-in-the-dram-market-challenging-samsung-sk-hynix-and-micron/",
+   "forecast": true
+  },
+  {
+   "period": "2025Q1",
+   "company_or_scope": "CXMT",
+   "share_pct": 4.1,
+   "basis": "revenue",
+   "source": "TrendForce (via Newsis)",
+   "source_url": "https://mobile.newsis.com/view/NISX20250618_0003218288"
+  },
+  {
+   "period": "2025Q1",
+   "company_or_scope": "CXMT",
+   "share_pct": 6.0,
+   "basis": "bit shipments",
+   "source": "Counterpoint Research (via IT Home repost)",
+   "source_url": "https://link-nemo.com/u/10000/post/1736619"
+  },
+  {
+   "period": "2025Q1",
+   "company_or_scope": "CXMT (DDR4 only)",
+   "share_pct": 10.0,
+   "basis": "bit shipments, DDR4 segment",
+   "source": "Counterpoint Research (via Newsis)",
+   "source_url": "https://mobile.newsis.com/view/NISX20250618_0003218288"
+  },
+  {
+   "period": "2025Q4 (forecast made Jun 2025)",
+   "company_or_scope": "CXMT",
+   "share_pct": 8.0,
+   "basis": "bit shipments; forecast",
+   "source": "Counterpoint Research (via IT Home repost)",
+   "source_url": "https://link-nemo.com/u/10000/post/1736619",
+   "forecast": true
+  },
+  {
+   "period": "2025Q2",
+   "company_or_scope": "CXMT",
+   "share_pct": 3.97,
+   "basis": "revenue",
+   "source": "Omdia, cited in CXMT IPO prospectus (via Yicai)",
+   "source_url": "https://www.yicai.com/news/102982526.html"
+  },
+  {
+   "period": "2025Q2",
+   "company_or_scope": "CXMT",
+   "share_pct": 4.0,
+   "basis": "revenue (global DRAM market)",
+   "source": "Counterpoint Research quarterly DRAM tracker",
+   "source_url": "https://counterpointresearch.com/insights/global-dram-and-hbm-market-share"
+  },
+  {
+   "period": "2025Q3",
+   "company_or_scope": "CXMT",
+   "share_pct": 5.0,
+   "basis": "revenue",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/insights/global-dram-and-hbm-market-share"
+  },
+  {
+   "period": "2025Q4",
+   "company_or_scope": "CXMT",
+   "share_pct": 8.0,
+   "basis": "revenue",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/insights/global-dram-and-hbm-market-share"
+  },
+  {
+   "period": "2025Q4",
+   "company_or_scope": "CXMT",
+   "share_pct": 7.67,
+   "basis": "revenue",
+   "source": "CXMT IPO prospectus (via 10jqka)",
+   "source_url": "https://news.10jqka.com.cn/20260528/c677025489.shtml"
+  },
+  {
+   "period": "2026Q1",
+   "company_or_scope": "CXMT",
+   "share_pct": 8.0,
+   "basis": "revenue",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/insights/global-dram-and-hbm-market-share"
+  },
+  {
+   "period": "2026Q1",
+   "company_or_scope": "CXMT",
+   "share_pct": 7.6,
+   "basis": "revenue",
+   "source": "TrendForce (via Herald Business)",
+   "source_url": "https://biz.heraldcorp.com/article/10866656"
+  },
+  {
+   "period": "2026Q2",
+   "company_or_scope": "CXMT",
+   "share_pct": 10.0,
+   "basis": "revenue",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/insights/global-dram-and-hbm-market-share"
+  },
+  {
+   "period": "2026Q2",
+   "company_or_scope": "CXMT",
+   "share_pct": 9.5,
+   "basis": "revenue",
+   "source": "TrendForce (via Herald Business)",
+   "source_url": "https://biz.heraldcorp.com/article/10866656"
+  },
+  {
+   "period": "mid-2026 (article 2026-07-16)",
+   "company_or_scope": "CXMT",
+   "share_pct": 9.0,
+   "basis": "bit shipments; approx.",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/en/insights/cxmt-stock-market-big-three-memory-club"
+  },
+  {
+   "period": "2028 (forecast)",
+   "company_or_scope": "CXMT",
+   "share_pct": 11.0,
+   "basis": "bit shipments; base-case forecast",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/en/insights/cxmt-stock-market-big-three-memory-club",
+   "forecast": true
+  },
+  {
+   "period": "2028 (forecast)",
+   "company_or_scope": "CXMT",
+   "share_pct": 9.0,
+   "basis": "revenue; base-case forecast",
+   "source": "Counterpoint Research",
+   "source_url": "https://counterpointresearch.com/en/insights/cxmt-stock-market-big-three-memory-club",
+   "forecast": true
+  },
+  {
+   "period": "2025Q1",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 10.0,
+   "basis": "NAND bit shipments; approx.",
+   "source": "Korea Herald (research firm not named; DIGITIMES cited elsewhere)",
+   "source_url": "https://v.daum.net/v/20260407151546249"
+  },
+  {
+   "period": "2025Q3",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 13.0,
+   "basis": "NAND bit shipments",
+   "source": "Korea Herald / CRN Asia (citing DIGITIMES)",
+   "source_url": "https://www.crnasia.com/news/2026/components-and-peripherals/china-s-memory-makers-are-playing-a-long-game-and-it-s-worki"
+  },
+  {
+   "period": "unspecified, reported 2026-04",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 11.0,
+   "basis": "NAND revenue",
+   "source": "Korea Herald (chart credited to Counterpoint; not verified)",
+   "source_url": "https://v.daum.net/v/20260407151546249"
+  },
+  {
+   "period": "latest as of 2026-06 (likely 2026Q1; vs 8% a year earlier)",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 13.0,
+   "basis": "unstated",
+   "source": "Counterpoint Research (via TechNode)",
+   "source_url": "https://technode.com/2026/06/22/ymtc-nand-market-share-climbs-to-13-as-global-competition-intensifies/"
+  },
+  {
+   "period": "same period 2025 (likely 2025Q1)",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 8.0,
+   "basis": "unstated",
+   "source": "Counterpoint Research (via TechNode)",
+   "source_url": "https://technode.com/2026/06/22/ymtc-nand-market-share-climbs-to-13-as-global-competition-intensifies/"
+  },
+  {
+   "period": "2026Q2",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 14.0,
+   "basis": "NAND bit shipments (capacity shipped)",
+   "source": "Counterpoint Research Memory & Storage Tracker (via Tom's Hardware/SCMP)",
+   "source_url": "https://tomshardware.com/tech-industry/ymtc-breaks-into-the-top-three-nand-makers-for-the-first-time",
+   "note": "ranked 3rd by bits, 5th by revenue"
+  },
+  {
+   "period": "2026 (forecast)",
+   "company_or_scope": "YMTC (NAND)",
+   "share_pct": 15.0,
+   "basis": "NAND bit shipments; projection",
+   "source": "Korea Herald (firm not named)",
+   "source_url": "https://v.daum.net/v/20260407151546249",
+   "forecast": true
+  }
+ ],
+ "notes": "No consistent single-source quarterly series exists before 2025Q2. Best consistent revenue series: Counterpoint quarterly tracker 2025Q2-2026Q2 (integer %); TrendForce revenue points only for 2025Q1, 2026Q1, 2026Q2 found (TrendForce's 4Q25 press release did not list CXMT). 2020-2024 points are coarse (Qianzhan, basis unstated; TrendForce composite ~5% for 2024). No reliable 2021 or 2022 CXMT share figure was found -> omitted. Revenue share understates CXMT's bit share because CXMT sells mostly cheaper legacy DDR4/LPDDR4 (bit share ~6% vs revenue ~4% in 2025Q1). YMTC: only 2025-2026 points found; no reliable 2020-2024 YMTC share numbers found."
+}

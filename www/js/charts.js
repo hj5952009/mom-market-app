@@ -783,7 +783,134 @@
     });
   }
 
+  // ================================================================== 반도체 탭
+  function ymText(ym) { return ym.slice(0, 4) + '년 ' + (+ym.slice(5, 7)) + '월'; }
+  function ymShort(ym) { return ym.slice(2, 4) + '.' + ym.slice(5, 7); }
+  function monthIdx(months, ym) { return months.indexOf(ym); }
+  /* 월별 선 1~3개. d: {months, series:[{name, values, cls, key, dash}], fmt, label, yFrom0} */
+  function semiLines(el, d) {
+    var M = d.months, n = M.length, Sx = d.series;
+    mount(el, d.label, function (w, F) {
+      var all = []; Sx.forEach(function (s) { s.values.forEach(function (v) { if (v != null) all.push(v); }); });
+      var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all), pad = (hi - lo) * 0.08 || 1;
+      var tk = niceTicks(lo - pad, hi + pad, 4), labW = Math.max.apply(null, tk.map(function (t) { return tw(d.fmt(t), F); })) + 8;
+      var endW = Math.max.apply(null, Sx.map(function (s) { var v = s.values[n - 1]; return v == null ? 0 : tw(d.fmt(v), F); })) + 8;
+      var x0 = labW, x1 = w - endW, ch = Math.round(F * 12), axisH = F * 1.8, h = ch + axisH, s = '';
+      var x = lin(0, n - 1, x0, x1), y = lin(tk[0], tk[tk.length - 1], ch - 4, 4);
+      tk.forEach(function (t) { s += L(x0, y(t), x1, y(t), 'c-grid'); s += T(0, y(t) + F * 0.35, d.fmt(t), F, 'c-txt num', 'start'); });
+      Sx.forEach(function (sr) {
+        var segs = [], cur = [];
+        sr.values.forEach(function (v, j) { if (v == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push([x(j), y(v)]); });
+        if (cur.length) segs.push(cur);
+        segs.forEach(function (sg) { s += P(poly(sg), sr.cls); });
+      });
+      var ends = Sx.map(function (sr) { var v = sr.values[n - 1]; return v == null ? null : { y: y(v), v: v, sr: sr }; }).filter(Boolean);
+      spread(ends, F * 1.15, F * 0.5, ch);
+      ends.forEach(function (e) { s += T(x1 + 6, e.y + F * 0.35, d.fmt(e.v), F, 'c-strong num', 'start'); });
+      var lastR = -1e9, yw = tw('2026', F);
+      M.forEach(function (m, j) {
+        if (m.slice(5) !== '01') return;
+        var xx = x(j); if (xx - yw / 2 < lastR + 10 || xx + yw / 2 > w) return;
+        s += T(xx, h - F * 0.35, m.slice(0, 4), F, 'c-txt num', 'middle'); lastR = xx + yw / 2;
+      });
+      return {
+        h: h, svg: s, stops: [[x(n - 1), ch / 2]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px))));
+          return { cx: x(j), cy0: 0, cy1: ch, dots: Sx.filter(function (sr) { return sr.values[j] != null && !sr.dash; }).map(function (sr) { return { x: x(j), y: y(sr.values[j]) }; }),
+            title: ymText(M[j]), rows: Sx.map(function (sr) { return { k: sr.key, label: sr.name, value: sr.values[j] == null ? '–' : d.fmt(sr.values[j]) }; }) };
+        }
+      };
+    });
+  }
+  /* D램 가격 실제 + 시나리오(로그 눈금). d: {months:[실제 월], actual:[...], scen:{months, A, Alo, Ahi, B, C, D}} */
+  function semiPrice(el, d) {
+    var AM = d.months, A = d.actual, S = d.scen;
+    var allM = AM.slice(); S.months.forEach(function (m) { if (allM.indexOf(m) < 0) allM.push(m); });
+    if (S.D && allM.indexOf(S.D.month) < 0) allM.push(S.D.month);
+    allM.sort(); var n = allM.length;
+    mount(el, 'D램 수출가격과 시나리오', function (w, F) {
+      var vals = A.concat(S.Alo, S.Ahi, S.B, S.C, S.D ? [S.D.lo, S.D.hi] : []).filter(function (v) { return v != null && v > 0; });
+      var lo = Math.log(Math.min.apply(null, vals) * 0.9), hi = Math.log(Math.max.apply(null, vals) * 1.08);
+      var cand = [25, 50, 100, 200, 400, 800, 1600], tk = cand.filter(function (t) { return Math.log(t) >= lo && Math.log(t) <= hi; });
+      var labW = Math.max.apply(null, tk.map(function (t) { return tw(String(t), F); })) + 8;
+      var ends = [['A', S.A], ['B', S.B], ['C', S.C]].map(function (e) { var v = null; e[1].forEach(function (x) { if (x != null) v = x; }); return { k: e[0], v: v }; }).filter(function (e) { return e.v != null; });
+      var endW = tw('A 000', F) + 8;
+      var x0 = labW, x1 = w - endW, ch = Math.round(F * 15), axisH = F * 1.8, h = ch + axisH, s = '';
+      var x = lin(0, n - 1, x0, x1), yl = lin(lo, hi, ch - 4, 4), y = function (v) { return yl(Math.log(v)); };
+      var X = function (m) { return x(allM.indexOf(m)); };
+      tk.forEach(function (t) { s += L(x0, y(t), x1, y(t), 'c-grid'); s += T(0, y(t) + F * 0.35, String(t), F, 'c-txt num', 'start'); });
+      // 예측 구간 음영
+      var fx0 = X(S.months[0]); s += '<rect x="' + n1(fx0) + '" y="0" width="' + n1(x1 - fx0) + '" height="' + ch + '" class="c-shade"/>';
+      // A 범위 띠
+      var up = [], dn = [];
+      S.months.forEach(function (m, i) { if (S.Alo[i] != null && S.Ahi[i] != null) { up.push([X(m), y(S.Ahi[i])]); dn.push([X(m), y(S.Alo[i])]); } });
+      if (up.length) s += P(poly(up.concat(dn.reverse())) + 'Z', 'w-down');
+      var link = function (arr) { var pts = []; S.months.forEach(function (m, i) { if (arr[i] != null) pts.push([X(m), y(arr[i])]); }); return pts; };
+      var lastA = [X(AM[AM.length - 1]), y(A[A.length - 1])];
+      var join = function (pts) { return pts.length && pts[0][0] > lastA[0] ? [lastA].concat(pts) : pts; };
+      [['B', S.B, 's-b1 s-dash'], ['C', S.C, 's-up s-dash'], ['A', S.A, 's-down s-dash']].forEach(function (e) { var pts = join(link(e[1])); if (pts.length > 1) s += P(poly(pts), e[2]); });
+      s += P(poly(A.map(function (v, j) { return [X(AM[j]), y(v)]; })), 'c-line');
+      s += C(lastA[0], lastA[1], 4.5, 'c-dot');
+      if (S.D) {
+        var dx = X(S.D.month);
+        s += L(dx, y(S.D.lo), dx, y(S.D.hi), 's-b1'); s += L(dx - 5, y(S.D.lo), dx + 5, y(S.D.lo), 's-b1'); s += L(dx - 5, y(S.D.hi), dx + 5, y(S.D.hi), 's-b1');
+        s += C(dx, y(S.D.mid), 5, 'b1');
+      }
+      var labs = ends.map(function (e) { return { y: y(e.v), t: e.k + ' ' + Math.round(e.v), cls: e.k === 'A' ? 'c-dn' : e.k === 'C' ? 'c-upt' : 'c-b1t' }; });
+      spread(labs, F * 1.2, F * 0.5, ch);
+      labs.forEach(function (l) { s += T(x1 + 6, l.y + F * 0.35, l.t, F, l.cls + ' num', 'start'); });
+      var lastR = -1e9, yw = tw('26.01', F);
+      allM.forEach(function (m, j) {
+        var mm = +m.slice(5, 7); if (mm !== 1 && mm !== 7) return;
+        var xx = x(j); if (xx - yw / 2 < lastR + 8 || xx + yw / 2 > w) return;
+        s += T(xx, h - F * 0.35, ymShort(m), F, 'c-txt num', 'middle'); lastR = xx + yw / 2;
+      });
+      var at = function (arr, m) { var i = S.months.indexOf(m); return i < 0 ? null : arr[i]; };
+      return {
+        h: h, svg: s, stops: [[lastA[0], lastA[1]]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px)))), m = allM[j], ai = AM.indexOf(m), rows = [], dots = [];
+          if (ai >= 0) { rows.push({ k: '--ink', label: '실제', value: A[ai].toFixed(1) }); dots.push({ x: x(j), y: y(A[ai]) }); }
+          var a = at(S.A, m), b = at(S.B, m), c = at(S.C, m);
+          if (a != null) rows.push({ k: '--down', label: 'A 박사 기본 (' + Math.round(at(S.Alo, m)) + '~' + Math.round(at(S.Ahi, m)) + ')', value: a.toFixed(0) });
+          if (b != null) rows.push({ k: '--band-1', label: 'B 감산 해제', value: b.toFixed(0) });
+          if (c != null) rows.push({ k: '--up', label: 'C 시장 전망', value: c.toFixed(0) });
+          if (S.D && m === S.D.month) rows.push({ k: '--band-1', label: 'D 공급 모델 (' + Math.round(S.D.lo) + '~' + Math.round(S.D.hi) + ')', value: String(Math.round(S.D.mid)) });
+          return { cx: x(j), cy0: 0, cy1: ch, dots: dots, title: ymText(m), rows: rows.length ? rows : [{ label: '자료 없음', value: '' }] };
+        }
+      };
+    });
+  }
+  /* 가로 막대(+/−). d: {rows:[[이름, 종류(price|volume|claim), 값%]]} */
+  function semiBars(el, d) {
+    var R = d.rows;
+    mount(el, '수출 금액·가격·물량 변화', function (w, F) {
+      var labW = Math.max.apply(null, R.map(function (r) { return tw(r[0], F); })) + 10, valW = tw('+000%', F) + 6;
+      var rowH = Math.max(F * 2, 30), barH = 14, h = rowH * R.length + 4, s = '';
+      var vmin = Math.min(0, Math.min.apply(null, R.map(function (r) { return r[2]; }))), vmax = Math.max(0, Math.max.apply(null, R.map(function (r) { return r[2]; })));
+      var x = lin(vmin, vmax, labW + valW, w - valW), xz = x(0);
+      var rows = R.map(function (r, i) {
+        var ry = i * rowH, by = ry + (rowH - barH) / 2, ty = by + barH / 2 + F * 0.35, xv = x(r[2]);
+        s += T(0, ty, r[0], F, 'c-lab', 'start');
+        s += hBar(xz, xv, by, barH, r[1] === 'claim' ? 'c-zone' : r[1] === 'price' ? 'f-up' : 'b1');
+        s += T(r[2] >= 0 ? xv + 6 : xv - 6, ty, U.signPct(r[2], 0), F, 'c-strong num', r[2] >= 0 ? 'start' : 'end');
+        return { y: ry, xv: xv, r: r };
+      });
+      s += L(xz, 0, xz, h, 'c-axis');
+      return {
+        h: h, svg: s, stops: rows.map(function (r) { return [w / 2, r.y + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(R.length - 1, Math.floor(py / rowH))), r = rows[i];
+          return { band: { x: -4, y: r.y, w: w + 8, h: rowH }, ax: r.xv, ay: r.y, title: r.r[0],
+            rows: [{ k: r.r[1] === 'claim' ? '--axis' : r.r[1] === 'price' ? '--up' : '--band-1', label: r.r[1] === 'claim' ? '박사 주장값' : '1년 전 같은 기간 대비', value: U.signPct(r.r[2], 1) }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
+    semiLines: semiLines, semiPrice: semiPrice, semiBars: semiBars,
     heat: heat, monthBars: monthBars, sungIndex: sungIndex, jwPriceVol: jwPriceVol,
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
     bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,

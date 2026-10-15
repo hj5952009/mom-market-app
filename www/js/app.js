@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.4.1';
+  var APP_VERSION = '2.5.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -501,6 +501,7 @@
     var d = el.dataset;
     if (/^sg/.test(d.act) && window.SungPage && window.SungPage.onAct(d.act, d, H)) return;
     if (/^jw/.test(d.act) && window.JwPage && window.JwPage.onAct(d.act, d, H)) return;
+    if (/^sm/.test(d.act) && window.SemiPage && window.SemiPage.onAct(d.act, d, H)) return;
     switch (d.act) {
       case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
       case 'refresh': refresh(true); break;

@@ -318,7 +318,7 @@
   var buildInfo = null;
   function getBuild() {
     if (buildInfo) return Promise.resolve(buildInfo);
-    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.3.0' }; })
+    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.5.0' }; })
       .then(function (b) { buildInfo = b; return b; });
   }
   function checkUpdate() {

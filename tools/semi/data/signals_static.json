@@ -1,0 +1,37 @@
+{
+ "note": "자동으로 못 받는 신호. 새 발표가 나오면 이 파일을 고친다.",
+ "rows": [
+  {
+   "id": "micron",
+   "name": "마이크론 이익률 가이던스",
+   "reading": "다음 분기 86.25%로 직전 분기 87.0%보다 낮음. 이번 사이클 첫 하향",
+   "status": "켜짐",
+   "asOf": "2026-09",
+   "source": "마이크론 FY26 4분기 실적 발표"
+  },
+  {
+   "id": "tf",
+   "name": "TrendForce 분기 전망",
+   "reading": "4분기 범용 D램 +10~15%, 낸드 +15~20%",
+   "status": "아직 아님",
+   "asOf": "2026-09-30",
+   "source": "TrendForce 보도자료"
+  },
+  {
+   "id": "spot",
+   "name": "현물가 vs 계약가",
+   "reading": "DDR4 8Gb 현물 $45.97가 계약가 $25보다 84% 높음. 현물이 계약가 밑으로 내려가야 하락 신호",
+   "status": "아직 아님",
+   "asOf": "2026-10-15",
+   "source": "DRAMeXchange"
+  },
+  {
+   "id": "china",
+   "name": "중국(CXMT) 점유율",
+   "reading": "D램 매출 점유율 10%(2026년 2분기), 분기당 약 1.5%p 상승",
+   "status": "압력",
+   "asOf": "2026-08",
+   "source": "Counterpoint Research"
+  }
+ ]
+}

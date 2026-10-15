@@ -1,0 +1,70 @@
+name: Semiconductor data
+
+# 반도체 탭(이주완 모델) 자료를 매일 새로 만든다.
+#  1) 한국은행 ECOS에서 반도체 생산능력·가동률, D램·플래시 수출물가, 수출금액·물량지수, 원/달러를 받는다
+#     (저장소 Secrets에 ECOS_API_KEY가 있으면 그 키, 없으면 공개 sample 키로 10건씩 받는다)
+#  2) tools/semi/jw_model.py로 모델을 다시 계산하고 build_app_json.py로 앱용 semi.json을 만든다
+#  3) 내용이 바뀌었으면 semi-data 가지(파일 몇 개만 있는 가지)에 올린다 → 앱이 그 파일을 받아 쓴다
+# 자료를 못 받거나 계산이 실패하면 실행이 실패로 표시되고 GitHub가 저장소 주인에게 메일로 알린다.
+on:
+  schedule:
+    - cron: '10 22 * * *'      # 매일 07:10 KST
+  workflow_dispatch:
+  push:
+    branches: [main, beta]
+    paths:
+      - 'tools/semi/**'
+      - '.github/workflows/semi-data.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: semi-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install packages
+        run: pip install --quiet pandas numpy
+
+      - name: Get ECOS data
+        env:
+          ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: python tools/semi/update_data.py "${ECOS_KEY:-sample}"
+
+      - name: Run model and build semi.json
+        run: python tools/semi/build_app_json.py
+
+      - name: Publish to semi-data branch (only when changed)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          mkdir -p /tmp/pub
+          cp tools/semi/out/semi.json tools/semi/out/summary.json tools/semi/data/ecos_raw_wide.csv /tmp/pub/
+          if git fetch --depth=1 origin semi-data 2>/dev/null && git show FETCH_HEAD:semi.json > /tmp/old.json 2>/dev/null; then
+            if python3 -c "
+          import json, sys
+          a = json.load(open('/tmp/old.json')); b = json.load(open('/tmp/pub/semi.json'))
+          a.pop('generatedAt', None); b.pop('generatedAt', None)
+          sys.exit(0 if a == b else 1)"; then
+              echo "자료 변화 없음 — 올리지 않음"; exit 0
+            fi
+          fi
+          cd /tmp/pub
+          git init -q -b semi-data
+          git add -A
+          git -c user.name='semi-data bot' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm "반도체 자료 $(TZ=Asia/Seoul date +%F)"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" semi-data
+          echo "semi-data 가지에 올림"
+          python3 -c "import json; d=json.load(open('semi.json')); print(d['asOf'], d['head']['phase'], d['head']['lit'], '/', d['head']['nSignals'])"

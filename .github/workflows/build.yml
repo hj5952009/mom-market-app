@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - 'tools/health-check.js'
       - '.github/workflows/data-health.yml'
+      - 'tools/semi/**'
+      - '.github/workflows/semi-data.yml'
       - '**.md'
       - 'screenshots/**'
   workflow_dispatch:

@@ -1,0 +1,153 @@
+{
+ "description": "News 2023-2026 on memory fab capacity additions (Samsung P4/P5, SK hynix M15X/Yongin, Micron Idaho/Hiroshima, CXMT), wafer capacity numbers, capex, and reported production/wafer-input cuts by Korean makers.",
+ "rows": [
+  {
+   "date": "2023-11-09",
+   "company": "Samsung",
+   "item": "Legacy wafer-input cut status",
+   "value_or_summary": "Cutting wafer input for legacy DDR4 and 128-layer NAND since Apr 2023; DRAM cut to continue at least to end-2023, output increase expected H2 2024",
+   "source_url": "http://www.kedglobal.com/newsAmp/ked202311090018"
+  },
+  {
+   "date": "2024-11-01",
+   "company": "SK hynix",
+   "item": "DDR4 share of DRAM output cut",
+   "value_or_summary": "DDR4 to fall to ~20% of DRAM output by end-2024 (from 40% end-Jun, 30% end-Sep 2024), citing CXMT legacy supply",
+   "source_url": "https://www.kedglobal.com/newsView/ked202411010010"
+  },
+  {
+   "date": "2024-11-01",
+   "company": "Samsung",
+   "item": "General-purpose DRAM/NAND output reduction",
+   "value_or_summary": "Said on earnings call it would reduce general DRAM and NAND output to match weaker demand; no % given",
+   "source_url": "https://www.kedglobal.com/newsView/ked202411010010"
+  },
+  {
+   "date": "2025-01-06",
+   "company": "Samsung, SK hynix, Micron",
+   "item": "NAND production cuts (reported)",
+   "value_or_summary": "Samsung/SK hynix trimmed legacy NAND output; Micron began cutting NAND wafer input; 1Q25 NAND contract prices seen -10~15%",
+   "source_url": "https://www.trendforce.com/news/2025/01/06/news-samsung-sk-hynix-and-micron-reportedly-cut-nand-production-amid-oversupply-and-slow-essd-demand/"
+  },
+  {
+   "date": "2025-01-13",
+   "company": "Samsung",
+   "item": "Xi'an NAND wafer input cut (reported)",
+   "value_or_summary": "Cut >10%: ~200k to ~170k wafers/month; Hwaseong lines 12 and 17 also adjusted down",
+   "source_url": "https://www.trendforce.com/news/2025/01/13/news-samsung-reportedly-to-cut-nand-production-at-xian-plant-by-over-10/"
+  },
+  {
+   "date": "2026-01-20",
+   "company": "Samsung",
+   "item": "2026 NAND wafer output (Omdia est.)",
+   "value_or_summary": "4.90m wafers (2025) -> 4.68m (2026), -4.5%",
+   "source_url": "https://www.blocksandfiles.com/ai-ml/2026/01/20/samsung-sk-hynix-cut-nand-wafer-output-to-shore-up-margins/4090555"
+  },
+  {
+   "date": "2026-01-20",
+   "company": "SK hynix",
+   "item": "2026 NAND wafer output (Omdia est.)",
+   "value_or_summary": "1.9m wafers (2025) -> 1.7m (2026), about -10%; capacity tilted to DRAM/HBM",
+   "source_url": "https://www.blocksandfiles.com/ai-ml/2026/01/20/samsung-sk-hynix-cut-nand-wafer-output-to-shore-up-margins/4090555"
+  },
+  {
+   "date": "2025-11-19",
+   "company": "Samsung",
+   "item": "1c DRAM capacity plan (reported)",
+   "value_or_summary": "Target ~200k wafers/month of 1c DRAM by end-2026 (~60k end-2025, +80k by 2Q26, +60k in 4Q26); total DRAM capacity est. 650-700k wpm",
+   "source_url": "https://www.trendforce.com/news/2025/11/19/news-samsung-reportedly-plans-200k-1c-dram-wafersmonth-by-2026-about-one-third-of-its-total-output/"
+  },
+  {
+   "date": "2025-11-19",
+   "company": "Samsung",
+   "item": "Pyeongtaek P5",
+   "value_or_summary": "Construction resumed after 2-year pause; targeted operation 2028 for HBM and 1c DRAM",
+   "source_url": "https://www.trendforce.com/news/2025/11/19/news-samsung-reportedly-plans-200k-1c-dram-wafersmonth-by-2026-about-one-third-of-its-total-output/"
+  },
+  {
+   "date": "2026-08-20",
+   "company": "Samsung",
+   "item": "P4 / P5 / Onyang HBM fab",
+   "value_or_summary": "P4 recently operational with 1c DRAM line for HBM; P5 final completion targeted 2030, possible triple-fab (>1.5x P4 capacity) pending approval; KRW 6tn Onyang HBM fab groundbreaking Sep 2026; Hwaseong H1 idle cleanroom used for general DRAM; large new supply seen limited before 2028",
+   "source_url": "https://trendforce.com/news/2026/08/20/news-samsung-to-break-ground-on-krw-6t-onyang-hbm-fab-in-sept-p5-eyes-triple-fab-shift-as-expansion-accelerates"
+  },
+  {
+   "date": "2025-09-23",
+   "company": "SK hynix",
+   "item": "M15X (Cheongju) initial ramp (reported)",
+   "value_or_summary": "Equipment move-in Nov 2025, inauguration 4Q25; initial 1b DRAM target ~10k wafers/month for HBM",
+   "source_url": "https://www.trendforce.com/news/?p=45798"
+  },
+  {
+   "date": "2026-01-14",
+   "company": "SK hynix",
+   "item": "Yongin fab 1 pulled forward",
+   "value_or_summary": "Opening moved ~3 months earlier to Feb 2027; no official capacity figure",
+   "source_url": "https://finance.yahoo.com/news/exclusive-sk-hynix-speeds-chip-220217637.html"
+  },
+  {
+   "date": "2026-06-05",
+   "company": "SK hynix",
+   "item": "DRAM wafer capacity now and 2030 target (reported)",
+   "value_or_summary": "~550k DRAM wpm now (incl. ~200k Wuxi); target ~1m wpm by 2030-31; M15X ~40k wpm from 2H26 -> ~80k in 2027; Yongin fab 1 to add ~360k wpm by 1H30; new capacity all DRAM",
+   "source_url": "https://www.trendforce.com/news/?p=58810"
+  },
+  {
+   "date": "2026-07-09",
+   "company": "SK hynix",
+   "item": "Fab timelines and capex per US IPO prospectus",
+   "value_or_summary": "M15X cleanroom opened Oct 2025, wafer input from 1Q26; Yongin phase-1 cleanroom 1Q27; P&T7 packaging end-2027; Indiana packaging 2H28. PP&E cash capex: W8.3tn (2023), W15.9tn (2024), W27.5tn (2025); 2026 to rise considerably",
+   "source_url": "https://www.sec.gov/Archives/edgar/data/0002120882/000119312526299963/d32785d424b4.htm"
+  },
+  {
+   "date": "2025-06-27",
+   "company": "Micron",
+   "item": "Fab timelines",
+   "value_or_summary": "Idaho ID1 DRAM wafer output to begin 2H 2027; ID2 before first New York fab; NY groundbreaking slipped to late 2025; Hiroshima next-gen DRAM mass production targeted 2026 (EUV); $200bn US plan",
+   "source_url": "https://www.trendforce.com/news/2025/06/27/news-can-global-fab-expansion-keep-up-with-microns-hbm-surge-timeline-update-from-u-s-japan-india/"
+  },
+  {
+   "date": "2026-09-30",
+   "company": "Micron",
+   "item": "FY2026 capex actual",
+   "value_or_summary": "Net capex $27.37bn (gross $30.71bn); FQ4-26 net $10.77bn",
+   "source_url": "https://finviz.com/news/397277/micron-technology-inc-reports-record-fiscal-fourth-quarter-and-full-year-2026-results"
+  },
+  {
+   "date": "2026-09-30",
+   "company": "Micron",
+   "item": "FY2027 capex outlook (headline summary)",
+   "value_or_summary": "FQ1-27 capex ~ $11.5bn; 1H FY27 ~ $25bn, higher again in 2H; opex +~$2.5bn; supply-demand seen tighter in FY27-28 than FY26 (wording per headline feed, garbled)",
+   "source_url": "https://www.newsquawk.com/headlines/micron-mu-says-operating-expenses-are-to-increase-by-about-usd-25bln-in-fiscal-2027-and-expects-memory-and-storage-supply-demand-conditions-to-be-much-higher-in-fiscal-2027-and-2028-than-in-2026"
+  },
+  {
+   "date": "2025-11-13",
+   "company": "Industry (TrendForce)",
+   "item": "2026 memory capex forecast",
+   "value_or_summary": "DRAM capex $53.7bn (2025) -> $61.3bn (2026, +14%); NAND $21.1bn -> $22.2bn (+5%); SK hynix $20.5bn (+17%), Samsung $20bn (+11%), Micron $13.5bn (+23%); limited bit-output effect in 2026, cleanroom-constrained; ID1 not before 2027",
+   "source_url": "https://trendforce.com/presscenter/news/20251113-12780.html"
+  },
+  {
+   "date": "2026-04-08",
+   "company": "CXMT",
+   "item": "Wafer capacity growth",
+   "value_or_summary": "~100k wpm at start of 2024 -> ~290k wpm by end-2025 (via Communications Today); UBS sees China memory capacity +120-140k wpm in 2026",
+   "source_url": "https://www.crnasia.com/news/2026/components-and-peripherals/china-s-memory-makers-are-playing-a-long-game-and-it-s-worki"
+  },
+  {
+   "date": "2026-08-03",
+   "company": "CXMT",
+   "item": "Capacity and new fab (reported)",
+   "value_or_summary": "~300k wpm across 2 Hefei + 1 Beijing fabs; ~350k wpm by end-2026 (vs Micron ~375k); >600k wpm once Shanghai/Hefei expansions complete (no date); considering 2nd Beijing fab",
+   "source_url": "https://www.tweaktown.com/news/112983/cxmt-is-considering-a-second-beijing-dram-fab-as-it-targets-micron-level-output-by-late-2026/index.html"
+  },
+  {
+   "date": "2026-07-16",
+   "company": "CXMT",
+   "item": "IPO",
+   "value_or_summary": "Shanghai STAR listing raising ~CNY 57.9bn (~$8.6bn) for next-gen process, HBM3 development and capacity",
+   "source_url": "https://korea.counterpointresearch.com/cxmt-dram-ipo-memory-market-share/"
+  }
+ ],
+ "notes": "Most capacity numbers are press/analyst reports (TrendForce citing Korean media, Omdia) rather than company disclosures; companies rarely publish wafers/month. Two 2023 rows included for context on the last Korean cut. No reported Korean DRAM wafer-input cuts in 2025-2026 were found; cuts in 2024-2026 concerned legacy DDR4 and NAND. No reliable DRAM fab utilization-rate percentages for Samsung/SK hynix in 2024-2026 were found -> omitted. Micron FY27 capex: only headline-feed summary found (prepared remarks not fetched); SK hynix 2Q26 / Samsung 2Q26 call capacity comments not captured. Micron Hiroshima 2026 ramp status not confirmed beyond the 2025 plan."
+}

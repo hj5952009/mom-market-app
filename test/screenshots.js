@@ -47,6 +47,11 @@ SHOTS.push(['11_sung_learn_light_x1.0', 'tab=sung&sg=learn', { theme: 'light' }]
 SHOTS.push(['08_tooltip_heat_light_x1.0', 'tab=sung', { theme: 'light', viewportOnly: true, scrollTo: '#c-sgheat', tap: ['#c-sgheat', 0.9, 0.3] }]);
 SHOTS.push(['12_jw_claims_light_x1.0', 'tab=jw&jw=claims&jwopen=c4', { theme: 'light' }]);
 SHOTS.push(['12_jw_claims_dark_x1.3', 'tab=jw&jw=claims&jwopen=c10&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['12_jw_model_light_x1.0', 'tab=jw&jw=model', { theme: 'light' }]);
+SHOTS.push(['12_jw_model_dark_x1.3', 'tab=jw&jw=model&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['12_jw_supply_light_x1.0', 'tab=jw&jw=supply', { theme: 'light' }]);
+SHOTS.push(['12_jw_supply_dark_x1.3', 'tab=jw&jw=supply&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['08_tooltip_smprice_light_x1.0', 'tab=jw&jw=model', { theme: 'light', viewportOnly: true, scrollTo: '#c-smprice', tap: ['#c-smprice', 0.85, 0.5] }]);
 SHOTS.push(['12_jw_rec_light_x1.0', 'tab=jw&jw=rec', { theme: 'light' }]);
 SHOTS.push(['12_jw_rec_dark_x1.3', 'tab=jw&jw=rec&scale=1.3', { theme: 'dark' }]);
 SHOTS.push(['08_tooltip_jwpv_light_x1.0', 'tab=jw', { theme: 'light', viewportOnly: true, tap: ['#c-jwpv', 0.9, 0.3] }]);

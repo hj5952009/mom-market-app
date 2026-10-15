@@ -1,5 +1,6 @@
 /* 이주완 페이지 — 이주완 박사의 메모리 반도체 주장을 한국은행 통계와 회사 실적으로 확인한 결과(data/jw.json).
- * 하위 화면: 요약 · 주장 · 기록. 판정과 설명은 앱이 쓴 것이고, 영상은 '영상 보기'로 유튜브에서 연다. */
+ * 하위 화면: 요약 · 모델 · 공급 · 주장 · 기록. 판정과 설명은 앱이 쓴 것이고, 영상은 '영상 보기'로 유튜브에서 연다.
+ * '모델'·'공급'은 js/semi.js가 그린다(매일 자동으로 새로 계산되는 공급 모델 자료 semi.json). */
 (function (root) {
   'use strict';
   var U = root.MCUtil, esc = U.esc;
@@ -28,7 +29,7 @@
   }
 
   function subNav() {
-    return '<div class="seg sgnav" role="group" aria-label="이주완 화면">' + [['sum', '요약'], ['claims', '주장 점검'], ['rec', '예측 기록']].map(function (x) {
+    return '<div class="seg sgnav" role="group" aria-label="이주완 화면">' + [['sum', '요약'], ['model', '모델'], ['supply', '공급'], ['claims', '주장'], ['rec', '기록']].map(function (x) {
       return '<button type="button" data-act="jwSub" data-s="' + x[0] + '" aria-pressed="' + (ST.sub === x[0]) + '">' + x[1] + '</button>';
     }).join('') + '</div>';
   }
@@ -116,6 +117,7 @@
       return { html: H.card('<div class="empty"><h2>점검 자료를 여는 중</h2></div>') };
     }
     var mounts = [], body;
+    if ((ST.sub === 'model' || ST.sub === 'supply') && root.SemiPage) return { html: subNav() + root.SemiPage.view(H, ST.sub, mounts), mounts: mounts };
     if (ST.sub === 'claims') body = pageClaims(H);
     else if (ST.sub === 'rec') body = pageRec(H);
     else body = pageSum(H, H.payload, mounts);

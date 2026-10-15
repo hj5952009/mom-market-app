@@ -334,7 +334,20 @@ const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실'
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.4.1', /versionName "2\.4\.1"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+// ------------------------------------------------------------------
+section('이주완 탭 모델 자료 (www/data/semi.json)');
+{
+  const sm = JSON.parse(fs.readFileSync(path.join(W, 'data/semi.json'), 'utf8'));
+  eq('스키마 v1', sm.v, 1);
+  ok('가격 월·값 길이 같음', sm.price.months.length === sm.price.dram.length && sm.price.dram.length > 100);
+  ok('공급 월·값 길이 같음', ['cap', 'prod3', 'util3', 'norm'].every(k => sm.supply[k].length === sm.supply.months.length));
+  ok('시나리오 13개월', ['A', 'Alo', 'Ahi', 'B', 'C'].every(k => sm.scen[k].length === 13) && sm.scen.months.length === 13);
+  ok('시나리오 A 범위 순서', sm.scen.Alo.every((v, i) => v <= sm.scen.A[i] + 1e-9 && sm.scen.A[i] <= sm.scen.Ahi[i] + 1e-9));
+  ok('신호 상태 값', sm.signals.every(x => ['켜짐', '압력', '둔화', '아직 아님'].includes(x.status) && x.name && x.reading && x.asOf));
+  eq('켜진 신호 수 = head.lit', sm.signals.filter(x => x.status !== '아직 아님').length, sm.head.lit);
+  ok('기준월 형식', /^\d{4}-\d{2}$/.test(sm.asOf.price) && /^\d{4}-\d{2}$/.test(sm.asOf.supply));
+}
+ok('versionName 2.5.0', /versionName "2\.5\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

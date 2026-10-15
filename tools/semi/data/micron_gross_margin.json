@@ -1,0 +1,489 @@
+{
+ "description": "Micron Technology quarterly gross margin by fiscal quarter, FY2016Q1-FY2026Q4, from Micron earnings press releases (SEC 8-K Exhibit 99.1). gross_margin_pct is non-GAAP where reported (FY2016Q2 onward); gaap_gross_margin_pct also given. guidance_next_q_gm_pct = non-GAAP GM guidance (midpoint) issued with that quarter's results for the FOLLOWING quarter.",
+ "rows": [
+  {
+   "fiscal_quarter": "FY2016Q1",
+   "period_end": "2015-12",
+   "gross_margin_pct": 25.0,
+   "basis": "GAAP",
+   "gaap_gross_margin_pct": 25.0,
+   "revenue_usd_m": 3350,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312515000136/a2016q1exhibit991-pressrel.htm",
+   "note": "GAAP margin stated as rounded 25%; non-GAAP not reported in releases for this quarter"
+  },
+  {
+   "fiscal_quarter": "FY2016Q2",
+   "period_end": "2016-03",
+   "gross_margin_pct": 20.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 19.7,
+   "revenue_usd_m": 2934,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000031/a2017q2exhibit991-pressrel.htm",
+   "note": "from year-ago column of FQ2-17 release (GAAP 19.7%)"
+  },
+  {
+   "fiscal_quarter": "FY2016Q3",
+   "period_end": "2016-06",
+   "gross_margin_pct": 18.1,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 17.2,
+   "revenue_usd_m": 2898,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000080/a2017q3exhibit991-pressrel.htm",
+   "note": "from year-ago column of FQ3-17 release (GAAP 17.2%)"
+  },
+  {
+   "fiscal_quarter": "FY2016Q4",
+   "period_end": "2016-09",
+   "gross_margin_pct": 18.6,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 18.0,
+   "revenue_usd_m": 3217,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000106/a2017q4exhibit991-pressrel.htm",
+   "note": "from year-ago column of FQ4-17 release (GAAP 18.0%)"
+  },
+  {
+   "fiscal_quarter": "FY2017Q1",
+   "period_end": "2016-12",
+   "gross_margin_pct": 26.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 25.5,
+   "revenue_usd_m": 3970,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000031/a2017q2exhibit991-pressrel.htm",
+   "note": "GAAP 25.5%"
+  },
+  {
+   "fiscal_quarter": "FY2017Q2",
+   "period_end": "2017-03",
+   "gross_margin_pct": 38.5,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 36.7,
+   "revenue_usd_m": 4648,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000031/a2017q2exhibit991-pressrel.htm",
+   "note": "GAAP 36.7%"
+  },
+  {
+   "fiscal_quarter": "FY2017Q3",
+   "period_end": "2017-06",
+   "gross_margin_pct": 48.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 46.9,
+   "revenue_usd_m": 5566,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000080/a2017q3exhibit991-pressrel.htm",
+   "note": "GAAP 46.9%"
+  },
+  {
+   "fiscal_quarter": "FY2017Q4",
+   "period_end": "2017-08",
+   "gross_margin_pct": 51.3,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 50.7,
+   "revenue_usd_m": 6138,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000106/a2017q4exhibit991-pressrel.htm",
+   "note": "GAAP 50.7%"
+  },
+  {
+   "fiscal_quarter": "FY2018Q1",
+   "period_end": "2017-11",
+   "gross_margin_pct": 55.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 55.1,
+   "revenue_usd_m": 6803,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312517000162/a2018q1exhibit991-pressrel.htm",
+   "note": "GAAP 55.1%"
+  },
+  {
+   "fiscal_quarter": "FY2018Q2",
+   "period_end": "2018-03",
+   "gross_margin_pct": 58.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 58.1,
+   "revenue_usd_m": 7351,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312518000031/a2018q2exhibit991-pressrel.htm",
+   "note": "GAAP 58.1%"
+  },
+  {
+   "fiscal_quarter": "FY2018Q3",
+   "period_end": "2018-05",
+   "gross_margin_pct": 60.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 60.6,
+   "revenue_usd_m": 7797,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312518000061/a2018q3exhibit991-pressrel.htm",
+   "note": "GAAP 60.6%"
+  },
+  {
+   "fiscal_quarter": "FY2018Q4",
+   "period_end": "2018-08",
+   "gross_margin_pct": 61.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 61.0,
+   "revenue_usd_m": 8440,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312518000085/a2018q4exhibit991-pressrel.htm",
+   "note": "GAAP 61.0%"
+  },
+  {
+   "fiscal_quarter": "FY2019Q1",
+   "period_end": "2018-11",
+   "gross_margin_pct": 59.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 58.3,
+   "revenue_usd_m": 7913,
+   "guidance_next_q_gm_pct": 51.5,
+   "guidance_next_q_gm_range": [
+    50,
+    53
+   ],
+   "guidance_source_url": "https://transcripts.platformaeronaut.com/summaries/MU-1Q19-AI-Summary",
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312518000152/a2019q1exhibit991-pressrel.htm",
+   "note": "GAAP 58.3%; FQ2-19 guidance 50-53% (call summary, midpoint 51.5)"
+  },
+  {
+   "fiscal_quarter": "FY2019Q2",
+   "period_end": "2019-02",
+   "gross_margin_pct": 50.2,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 49.1,
+   "revenue_usd_m": 5835,
+   "guidance_next_q_gm_pct": 38.5,
+   "guidance_next_q_gm_range": [
+    37,
+    40
+   ],
+   "guidance_source_url": "https://transcripts.platformaeronaut.com/summaries/MU-2Q19-AI-Summary",
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312519000012/a2019q2exhibit991-pressrel.htm",
+   "note": "GAAP 49.1%; FQ3-19 guidance 37-40% (call summary, midpoint 38.5)"
+  },
+  {
+   "fiscal_quarter": "FY2019Q3",
+   "period_end": "2019-05",
+   "gross_margin_pct": 39.3,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 38.2,
+   "revenue_usd_m": 4788,
+   "guidance_next_q_gm_pct": 29.0,
+   "guidance_source_url": "https://transcripts.platformaeronaut.com/summaries/MU-3Q19-AI-Summary",
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312519000032/a2019q3exhibit991-pressrel.htm",
+   "note": "GAAP 38.2%; FQ4-19 guidance 29% +/-1.5pt (call summary; basis not labelled)"
+  },
+  {
+   "fiscal_quarter": "FY2019Q4",
+   "period_end": "2019-08",
+   "gross_margin_pct": 30.6,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 28.6,
+   "revenue_usd_m": 4870,
+   "guidance_next_q_gm_pct": 26.5,
+   "source_url": "https://micron.gcs-web.com/node/39821/pdf",
+   "note": "GAAP 28.6%; FQ1-20 guidance 26.5% +/-1.5"
+  },
+  {
+   "fiscal_quarter": "FY2020Q1",
+   "period_end": "2019-11",
+   "gross_margin_pct": 27.3,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 26.6,
+   "revenue_usd_m": 5144,
+   "guidance_next_q_gm_pct": 27.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312519000172/a2020q1exhibit991-pres.htm",
+   "note": "GAAP 26.6%; FQ2-20 guidance 27% +/-1.5"
+  },
+  {
+   "fiscal_quarter": "FY2020Q2",
+   "period_end": "2020-02",
+   "gross_margin_pct": 29.1,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 28.2,
+   "revenue_usd_m": 4797,
+   "guidance_next_q_gm_pct": 31.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312520000030/a2020q2exhibit991-pres.htm",
+   "note": "GAAP 28.2%"
+  },
+  {
+   "fiscal_quarter": "FY2020Q3",
+   "period_end": "2020-05",
+   "gross_margin_pct": 33.2,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 32.4,
+   "revenue_usd_m": 5438,
+   "guidance_next_q_gm_pct": 35.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312520000063/a2020q3exhibit991-pres.htm",
+   "note": "GAAP 32.4%"
+  },
+  {
+   "fiscal_quarter": "FY2020Q4",
+   "period_end": "2020-09",
+   "gross_margin_pct": 34.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 34.1,
+   "revenue_usd_m": 6056,
+   "guidance_next_q_gm_pct": 27.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312520000079/a2020q4exhibit991-pres.htm",
+   "note": "GAAP 34.1%"
+  },
+  {
+   "fiscal_quarter": "FY2021Q1",
+   "period_end": "2020-12",
+   "gross_margin_pct": 30.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 30.1,
+   "revenue_usd_m": 5773,
+   "guidance_next_q_gm_pct": 31.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312521000009/a2021q1ex991-pressrelease.htm",
+   "note": "GAAP 30.1%"
+  },
+  {
+   "fiscal_quarter": "FY2021Q2",
+   "period_end": "2021-03",
+   "gross_margin_pct": 32.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 26.4,
+   "revenue_usd_m": 6236,
+   "guidance_next_q_gm_pct": 41.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312521000028/a2021q2ex991-pressrelease.htm",
+   "note": "GAAP 26.4% (one-off charge)"
+  },
+  {
+   "fiscal_quarter": "FY2021Q3",
+   "period_end": "2021-06",
+   "gross_margin_pct": 42.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 42.1,
+   "revenue_usd_m": 7422,
+   "guidance_next_q_gm_pct": 47.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312521000049/a2021q3ex991-pressrelease.htm",
+   "note": "GAAP 42.1%"
+  },
+  {
+   "fiscal_quarter": "FY2021Q4",
+   "period_end": "2021-09",
+   "gross_margin_pct": 47.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 47.3,
+   "revenue_usd_m": 8274,
+   "guidance_next_q_gm_pct": 47.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312521000060/a2021q4ex991-pressrelease.htm",
+   "note": "GAAP 47.3%"
+  },
+  {
+   "fiscal_quarter": "FY2022Q1",
+   "period_end": "2021-12",
+   "gross_margin_pct": 47.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 46.4,
+   "revenue_usd_m": 7687,
+   "guidance_next_q_gm_pct": 46.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312521000086/a2022q1ex991-pressrelease.htm",
+   "note": "GAAP 46.4%"
+  },
+  {
+   "fiscal_quarter": "FY2022Q2",
+   "period_end": "2022-03",
+   "gross_margin_pct": 47.8,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 47.2,
+   "revenue_usd_m": 7786,
+   "guidance_next_q_gm_pct": 48.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312522000012/a2022q2ex991-pressrelease.htm",
+   "note": "GAAP 47.2%"
+  },
+  {
+   "fiscal_quarter": "FY2022Q3",
+   "period_end": "2022-06",
+   "gross_margin_pct": 47.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 46.7,
+   "revenue_usd_m": 8642,
+   "guidance_next_q_gm_pct": 42.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312522000034/a2022q3ex991-pressrelease.htm",
+   "note": "GAAP 46.7%"
+  },
+  {
+   "fiscal_quarter": "FY2022Q4",
+   "period_end": "2022-09",
+   "gross_margin_pct": 40.3,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 39.5,
+   "revenue_usd_m": 6643,
+   "guidance_next_q_gm_pct": 26.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312522000044/a2022q4ex991-pressrelease.htm",
+   "note": "GAAP 39.5%"
+  },
+  {
+   "fiscal_quarter": "FY2023Q1",
+   "period_end": "2022-12",
+   "gross_margin_pct": 22.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 21.9,
+   "revenue_usd_m": 4085,
+   "guidance_next_q_gm_pct": 8.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312522000070/a2023q1ex991-pressrelease.htm",
+   "note": "GAAP 21.9%"
+  },
+  {
+   "fiscal_quarter": "FY2023Q2",
+   "period_end": "2023-03",
+   "gross_margin_pct": -31.4,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": -32.7,
+   "revenue_usd_m": 3693,
+   "guidance_next_q_gm_pct": -21.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000018/a2023q2ex991-pressrelease.htm",
+   "note": "GAAP -32.7% (incl. inventory write-down)"
+  },
+  {
+   "fiscal_quarter": "FY2023Q3",
+   "period_end": "2023-06",
+   "gross_margin_pct": -16.1,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": -17.8,
+   "revenue_usd_m": 3752,
+   "guidance_next_q_gm_pct": -10.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000038/a2023q3ex991-pressrelease.htm",
+   "note": "GAAP -17.8%"
+  },
+  {
+   "fiscal_quarter": "FY2023Q4",
+   "period_end": "2023-08",
+   "gross_margin_pct": -9.1,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": -10.8,
+   "revenue_usd_m": 4010,
+   "guidance_next_q_gm_pct": -4.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000051/a2023q4ex991-pressrelease.htm",
+   "note": "GAAP -10.8%"
+  },
+  {
+   "fiscal_quarter": "FY2024Q1",
+   "period_end": "2023-11",
+   "gross_margin_pct": 0.8,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": -0.7,
+   "revenue_usd_m": 4726,
+   "guidance_next_q_gm_pct": 13.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000071/a2024q1ex991-pressrelease.htm",
+   "note": "GAAP -0.7%"
+  },
+  {
+   "fiscal_quarter": "FY2024Q2",
+   "period_end": "2024-02",
+   "gross_margin_pct": 20.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 18.5,
+   "revenue_usd_m": 5824,
+   "guidance_next_q_gm_pct": 26.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000004/a2024q2ex991-pressrelease.htm",
+   "note": "GAAP 18.5%"
+  },
+  {
+   "fiscal_quarter": "FY2024Q3",
+   "period_end": "2024-05",
+   "gross_margin_pct": 28.1,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 26.9,
+   "revenue_usd_m": 6811,
+   "guidance_next_q_gm_pct": 34.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000016/a2024q3ex991-pressrelease.htm",
+   "note": "GAAP 26.9%"
+  },
+  {
+   "fiscal_quarter": "FY2024Q4",
+   "period_end": "2024-08",
+   "gross_margin_pct": 36.5,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 35.3,
+   "revenue_usd_m": 7750,
+   "guidance_next_q_gm_pct": 39.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000023/a2024q4ex991-pressrelease.htm",
+   "note": "GAAP 35.3%"
+  },
+  {
+   "fiscal_quarter": "FY2025Q1",
+   "period_end": "2024-11",
+   "gross_margin_pct": 39.5,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 38.4,
+   "revenue_usd_m": 8709,
+   "guidance_next_q_gm_pct": 38.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000046/a2025q1ex991-pressrelease.htm",
+   "note": "GAAP 38.4%"
+  },
+  {
+   "fiscal_quarter": "FY2025Q2",
+   "period_end": "2025-02",
+   "gross_margin_pct": 37.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 36.8,
+   "revenue_usd_m": 8053,
+   "guidance_next_q_gm_pct": 36.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312525000006/a2025q2ex991-pressrelease.htm",
+   "note": "GAAP 36.8%"
+  },
+  {
+   "fiscal_quarter": "FY2025Q3",
+   "period_end": "2025-05",
+   "gross_margin_pct": 39.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 37.7,
+   "revenue_usd_m": 9301,
+   "guidance_next_q_gm_pct": 42.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312525000019/a2025q3ex991-pressrelease.htm",
+   "note": "GAAP 37.7%"
+  },
+  {
+   "fiscal_quarter": "FY2025Q4",
+   "period_end": "2025-08",
+   "gross_margin_pct": 45.7,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 44.7,
+   "revenue_usd_m": 11315,
+   "guidance_next_q_gm_pct": 51.5,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312525000024/a2025q4ex991-pressrelease.htm",
+   "note": "GAAP 44.7%"
+  },
+  {
+   "fiscal_quarter": "FY2026Q1",
+   "period_end": "2025-11",
+   "gross_margin_pct": 56.8,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 56.0,
+   "revenue_usd_m": 13643,
+   "guidance_next_q_gm_pct": 68.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312525000044/a2026q1ex991-pressrelease.htm",
+   "note": "GAAP 56.0%"
+  },
+  {
+   "fiscal_quarter": "FY2026Q2",
+   "period_end": "2026-02",
+   "gross_margin_pct": 74.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 74.4,
+   "revenue_usd_m": 23860,
+   "guidance_next_q_gm_pct": 81.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000004/a2026q2ex991-pressrelease.htm",
+   "note": "GAAP 74.4%; FQ3-26 guidance ~81% (GAAP and non-GAAP)"
+  },
+  {
+   "fiscal_quarter": "FY2026Q3",
+   "period_end": "2026-05",
+   "gross_margin_pct": 84.9,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 84.6,
+   "revenue_usd_m": 41456,
+   "guidance_next_q_gm_pct": 86.0,
+   "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312526000013/a2026q3ex991-pressrelease.htm",
+   "note": "GAAP 84.6%; FQ4-26 guidance ~86%"
+  },
+  {
+   "fiscal_quarter": "FY2026Q4",
+   "period_end": "2026-08",
+   "gross_margin_pct": 87.0,
+   "basis": "non-GAAP",
+   "gaap_gross_margin_pct": 86.8,
+   "revenue_usd_m": 54229,
+   "guidance_next_q_gm_pct": 86.25,
+   "source_url": "https://finviz.com/news/397277/micron-technology-inc-reports-record-fiscal-fourth-quarter-and-full-year-2026-results",
+   "note": "GAAP 86.8%; FQ1-27 guidance ~86.25% non-GAAP (GAAP ~85.95%), revenue $61.5B +/-1.5B"
+  }
+ ],
+ "notes": "FY2016Q1 only GAAP (rounded 25%) found; FY2016Q2-Q4 non-GAAP taken from year-ago columns of FY2017 releases. Guidance for FQ1-17 through FQ1-19 (issued with FY2016Q1-FY2018Q4 results) was given only on conference calls and not found -> omitted. FQ2-19, FQ3-19 and FQ4-19 guidance come from third-party call summaries (platformaeronaut) rather than releases; the FQ4-19 figure (29%) is not explicitly labelled non-GAAP. From FY2019Q4 on, guidance is from the release's Business Outlook table (non-GAAP midpoint). FY2026Q3 and Q4 guidance were stated as 'approximately' values. FY2026Q4 figures are from the press release text reproduced on finviz (SEC copy not fetched). FY2021Q2 GAAP margin depressed by a one-time charge; non-GAAP is the better series. Period_end uses the calendar month of Micron's fiscal quarter-end date (52/53-week year, so months vary between Nov/Dec, Feb/Mar, May/Jun, Aug/Sep)."
+}

@@ -1,0 +1,186 @@
+{
+ "description": "Key facts on past DRAM downturns (2018-2019 and 2022-2023): contract/fixed price peaks and troughs (DRAMeXchange DDR4 8Gb PC DRAM fixed transaction price unless stated), timing of first declines, and production/wafer-input cuts by Micron, SK hynix, Samsung.",
+ "rows": [
+  {
+   "cycle": "2018-2019",
+   "event": "DDR4 8Gb PC DRAM fixed (contract) price at cycle peak",
+   "date": "2018-Q2 to 2018-09",
+   "value": "$8.19 (flat Apr-Jul 2018; still 8.19 at end-Sep)",
+   "source_url": "https://newstomato.com/ReadNews.aspx?no=839437"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "First monthly fixed-price decline (end-Oct print)",
+   "date": "2018-10",
+   "value": "$7.31, -10.7% m/m vs $8.19 in Sep",
+   "source_url": "https://www.koreapost.com/news/articleView.html?idxno=7842"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "TrendForce: PC DRAM contract prices turned down sharply after 9 straight quarterly rises; 8GB module 4Q18 $68->$61 (-10.3% q/q)",
+   "date": "2018-10",
+   "value": "module contract -10.29% q/q (4Q18 vs 3Q18)",
+   "source_url": "https://dramexchange.com/WeeklyResearch/Post/2/5135.html"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "November 2018: some contracts cut twice in the month, moved to monthly terms; 8GB module -1.6% m/m",
+   "date": "2018-11",
+   "value": "8GB module $61->$60",
+   "source_url": "https://www.trendforce.com/presscenter/news/20181204-10078.html"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "December 2018 contract prices described as stable vs November; January 2019 forecast >=10% m/m drop; 1Q19 forecast ~-20% q/q",
+   "date": "2018-12 / 2019-01",
+   "value": "Dec flat; Jan-19 >= -10% (forecast); 1Q19 ~ -20% (forecast)",
+   "source_url": "https://www.trendforce.com/presscenter/news/20190115-10093.html"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Micron guided FQ2-19 (Dec18-Feb19) non-GAAP GM 50-53% vs 59.0% in FQ1-19 -- first sharp guidance cut of the cycle",
+   "date": "2018-12-18",
+   "value": "GM guide midpoint 51.5% vs 59.0% actual",
+   "source_url": "https://transcripts.platformaeronaut.com/summaries/MU-1Q19-AI-Summary"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Monthly fixed-price decline streak ended: Jan 2020 first rise after 13 months of decline",
+   "date": "2020-01",
+   "value": "13-month decline ended; Feb 2020 price $2.88",
+   "source_url": "https://biz.newdaily.co.kr/site/data/html/2020/03/02/2020030200005.amp.html"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "DDR4 8Gb fixed price trough (Dec 2019), back-computed from Mar-2020 $2.94 and Jan/Feb/Mar 2020 increases (+1.07%,+1.41%,+2.08%)",
+   "date": "2019-12",
+   "value": "~$2.81",
+   "source_url": "https://www.khan.co.kr/article/202005041538001",
+   "derived": true
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Peak-to-trough decline, DDR4 8Gb fixed price ($8.19 -> ~$2.81)",
+   "date": "2018-09 to 2019-12",
+   "value": "~-66%",
+   "source_url": "https://www.khan.co.kr/article/202005041538001",
+   "derived": true
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Micron announced ~5% DRAM and ~5% NAND production cuts",
+   "date": "2019-03",
+   "value": "DRAM -5%, NAND -5%",
+   "source_url": "https://www.electronicdesign.com/markets/automation/article/21808222/electronic-design-micron-doubles-down-on-cuts-to-memory-chip-production"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Micron deepened NAND cut to ~10% for 2019; kept DRAM -5%; capex cut by $1.5bn to ~$9bn",
+   "date": "2019-06",
+   "value": "NAND -10% total; DRAM -5%",
+   "source_url": "https://www.electronicdesign.com/markets/automation/article/21808222/electronic-design-micron-doubles-down-on-cuts-to-memory-chip-production"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "SK hynix (Q1-19 results, Apr 2019) had planned >10% y/y NAND wafer-input cut; at Q2-19 results raised to 15% and announced DRAM output reduction (part of Icheon M10 moved to CMOS image sensors, effect from 4Q19 into 2020)",
+   "date": "2019-07-25",
+   "value": "NAND wafer input -15% y/y (2019); DRAM capacity reduced (no % given)",
+   "source_url": "https://www.koreajoongangdaily.com/business/sk-hynix-plans-production-cuts/10147808"
+  },
+  {
+   "cycle": "2018-2019",
+   "event": "Samsung did not announce production cuts in 2019 (Q2-19 results made no mention of capacity cuts)",
+   "date": "2019-07-31",
+   "value": "no official cut",
+   "source_url": "https://blocksandfiles.com/2019/07/31/samsung-dram-nand-revenues-q2-2019/"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "DDR4 8Gb fixed price peak",
+   "date": "2021-07 (held through 2021-09)",
+   "value": "$4.10 (+7.89% in Jul 2021)",
+   "source_url": "https://thelec.net/news/articleView.html?idxno=3635"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "First fixed-price decline after peak",
+   "date": "2021-10",
+   "value": "$3.71, -9.51% vs $4.10",
+   "source_url": "https://thelec.net/news/articleView.html?idxno=3635"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Steep fall: October 2022 fixed price",
+   "date": "2022-10",
+   "value": "$2.21, -22.46% m/m, ~-40% y/y",
+   "source_url": "https://v.daum.net/v/20221101154500675"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "SK hynix cut 2023 capex by >50% from ~20tn won in 2022 and said it would reduce production",
+   "date": "2022-10-26",
+   "value": "capex -50%+; output reduction (no %)",
+   "source_url": "https://www.koreajoongangdaily.com/business/sk-hynix-misses-in-third-quarter-slashes-capital-expenditure/11094878"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Micron cut DRAM and NAND wafer starts ~20% vs prior quarter (after ~50% capex cut)",
+   "date": "2022-11-16",
+   "value": "wafer starts -20%",
+   "source_url": "https://blocksandfiles.com/2022/11/16/micron-cuts-dram-nand-production/"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Samsung officially announced memory production cut to a 'meaningful' level -- first official admission after saying no artificial cuts",
+   "date": "2023-04-07",
+   "value": "official cut (no % given); Q1-23 company OP ~0.6tn won",
+   "source_url": "https://www.khan.co.kr/en/article/202304071437077"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "SK hynix announced additional 5-10% NAND output cut for 2023; DRAM output also expected to decline",
+   "date": "2023-07-26",
+   "value": "NAND -5~10% additional",
+   "source_url": "https://www.koreatimes.co.kr/www/tech/2023/08/129_355738.html"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "DDR4 8Gb fixed price trough",
+   "date": "2023-07 to 2023-09",
+   "value": "$1.30",
+   "source_url": "https://www.kedglobal.com/korean-chipmakers/newsView/ked202310040013"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Peak-to-trough decline, DDR4 8Gb fixed price ($4.10 -> $1.30)",
+   "date": "2021-07 to 2023-09",
+   "value": "~-68%",
+   "source_url": "https://www.kedglobal.com/korean-chipmakers/newsView/ked202310040013",
+   "derived": true
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "First fixed-price rise in 27 months (after Samsung output cuts)",
+   "date": "2023-10",
+   "value": "$1.50, +15.4% m/m",
+   "source_url": "http://www.kedglobal.com/newsAmp/ked202311010013"
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Lag: peak (Jul-2021) to Samsung official cut (Apr-2023)",
+   "date": "2021-07 to 2023-04",
+   "value": "~21 months",
+   "source_url": "https://www.khan.co.kr/en/article/202304071437077",
+   "derived": true
+  },
+  {
+   "cycle": "2022-2023",
+   "event": "Lag: Samsung official cut (Apr-2023) to first price rise (Oct-2023)",
+   "date": "2023-04 to 2023-10",
+   "value": "~6 months",
+   "source_url": "http://www.kedglobal.com/newsAmp/ked202311010013",
+   "derived": true
+  }
+ ],
+ "notes": "Late-2018 episode: per TrendForce/DRAMeXchange the contract decline began in OCTOBER 2018 (DDR4 8Gb fixed price -10.7% to $7.31), not December; December 2018 prints were roughly flat vs November, and the steep leg came in January-March 2019 (~-20% in 1Q19 forecast). Spot prices had been falling since early 2018. Newdaily's '13-month decline ended Jan 2020' implies the uninterrupted monthly decline streak counted from about Dec 2018/Jan 2019, which may be the source of the 'from December' framing. The 2019 trough level (~$2.81, Dec 2019) is back-computed from reported 2020 monthly changes, not directly quoted -- marked derived. Samsung made no official DRAM cut in 2018-2019 (SK hynix and Micron did). In 2022-2023, Micron cut first (Nov 2022), SK hynix cut capex/output (Oct 2022, Jul 2023), Samsung officially cut in Apr 2023; prices bottomed Jul-Sep 2023 and rose from Oct 2023. Percent wafer-input cuts by Samsung/SK hynix for DRAM were not officially quantified (press estimates exist but not captured here)."
+}
