@@ -1,4 +1,4 @@
-/* 성상현 페이지 (베타) — 블로그 '매크로 비욘드'(성상현) 글 1,170개를 앱이 분석·요약한 자료(data/sung.json)를 보여 준다.
+/* 성상현 페이지 — 블로그 '매크로 비욘드'(성상현) 글 1,170개를 앱이 분석·요약한 자료(data/sung.json)를 보여 준다.
  * 원문은 옮기지 않고, 요약은 앱이 쓴 것이며, 원문은 '원문 보기'로 블로그에서 연다.
  * 하위 화면: 요약 · 주제 · 글 · 원칙·용어 */
 (function (root) {
@@ -216,7 +216,7 @@
 
   // H: app.js가 넘겨 주는 도구 {card, head, chartBox, $, Ch, setBar, render, openUrl, payload}
   function page(H) {
-    H.setBar('성상현 · 매크로 비욘드', '<span class="chip demo">베타</span>', false);
+    H.setBar('성상현 · 매크로 비욘드', '', false);
     if (!DATA) {
       if (failed) return { html: H.card('<div class="empty"><h2>자료를 열지 못했어요</h2></div>') };
       load().then(H.render);
