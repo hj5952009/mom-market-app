@@ -46,6 +46,15 @@
         return '<div class="jwt ' + k + '"><b class="num">' + cnt[k] + '</b><small>' + esc(D.cats[k]) + '</small></div>';
       }).join('') + '</div>' +
       '<button type="button" class="btn ghost wide" data-act="jwSub" data-s="claims">주장 하나씩 보기</button>'));
+    if (D.disc) {
+      var B = D.disc.bars, mx = Math.max.apply(null, B.rows.map(function (r) { return Math.abs(r[1]); }));
+      out.push(H.card(H.head(D.disc.title, D.disc.sub) +
+        '<p class="jwbl">' + esc(B.label) + '</p><ul class="jwbars">' + B.rows.map(function (r) {
+          var w = (Math.abs(r[1]) / mx * 50).toFixed(1);
+          return '<li><span class="jwbn">' + esc(r[0]) + '</span><span class="jwbt"><i class="' + (r[1] >= 0 ? 'p' : 'n') + '" style="width:' + w + '%"></i></span><b class="num ' + (r[1] >= 0 ? '' : 'dn') + '">' + (r[1] > 0 ? '+' : r[1] < 0 ? '−' : '') + Math.abs(Math.round(r[1])) + '%</b></li>';
+        }).join('') + '</ul>' +
+        D.disc.points.map(function (b) { return '<div class="jwbig">' + badge(b.cat, b.label) + '<h3>' + esc(b.title) + '</h3><p>' + esc(b.plain) + '</p></div>'; }).join('')));
+    }
     out.push(H.card(H.head(D.chart.title, D.chart.note) + H.chartBox('c-jwpv') +
       '<div class="legend"><span><i class="sw" style="background:var(--up)"></i>D램 가격 (위)</span><span><i class="sw" style="background:var(--band-1)"></i>반도체 생산</span><span><i class="sw" style="background:var(--band-3)"></i>수출 물량</span></div>' +
       '<p class="note">막대는 1년 전 같은 분기와 비교한 변화예요. 막대를 누르면 숫자가 보여요</p>'));

@@ -451,3 +451,14 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .jwrh{ display: flex; justify-content: space-between; align-items: center; font-size: .8125rem; color: var(--muted); margin-bottom: 4px; }
 .jwleg{ margin: 8px 0 4px; }
 .sp-m .jwb{ margin-right: 4px; vertical-align: 1px; }
+.jwbl{ font-size: .875rem; font-weight: 700; color: var(--ink-2); margin-top: 12px; }
+.jwbars{ list-style: none; margin: 8px 0 6px; padding: 0; }
+.jwbars li{ display: grid; grid-template-columns: 6.6em 1fr 3.2em; align-items: center; gap: 8px; padding: 5px 0; font-size: .9375rem; }
+.jwbn{ color: var(--ink-2); white-space: nowrap; }
+.jwbt{ position: relative; height: 14px; }
+.jwbt::before{ content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--axis); }
+.jwbt i{ position: absolute; top: 0; height: 14px; border-radius: 3px; }
+.jwbt i.p{ left: 50%; background: var(--band-1); }
+.jwbt i.n{ right: 50%; background: var(--down); }
+.jwbars b{ text-align: right; font-weight: 700; }
+.jwbars b.dn{ color: var(--down); }

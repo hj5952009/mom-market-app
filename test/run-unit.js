@@ -286,6 +286,8 @@ section('이주완 페이지 자료');
   const cats = Object.keys(JW.cats), vids = new Set(JW.videos.map(v => v.id));
   ok('주장마다 판정·쉬운 설명·근거·영상', JW.claims.every(c => cats.includes(c.cat) && c.plain && c.ev.length && vids.has(c.v)), JW.claims.filter(c => !vids.has(c.v)).map(c => c.id));
   ok('주장 id 겹침 없음', new Set(JW.claims.map(c => c.id)).size === JW.claims.length);
+  ok('공시 카드: 막대 4개, 설명 4개', JW.disc && JW.disc.bars.rows.length === 4 && JW.disc.points.every(b => cats.includes(b.cat) && b.plain));
+  ok('한눈에 보기와 주장 판정이 같은 분류', JW.big[1].cat === JW.claims.find(c => c.id === 'c4').cat);
   ok('예측 기록 결과는 맞음·틀림·진행 중', JW.record.every(r => ['ok', 'no', 'wait'].includes(r.res)));
   const cnt = r => JW.record.filter(x => x.res === r).length;
   eq('예측 기록: 결과 난 9건 중 5건 맞음', [cnt('ok'), cnt('no')], [5, 4]);
@@ -332,7 +334,7 @@ const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실'
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.4.0', /versionName "2\.4\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.4.1', /versionName "2\.4\.1"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
