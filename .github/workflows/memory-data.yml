@@ -1,0 +1,58 @@
+name: Memory price data
+
+# '반도체' 탭 자료(www/data/memory.json)를 매일 한국은행 ECOS에서 다시 만든다.
+#  - 수출물가지수는 매달 중순에 나오지만 수정·잠정치가 바뀔 수 있어 평일마다 확인한다(평일 07:05 KST).
+#  - 저장소 비밀값 ECOS_API_KEY가 없으면 저장된 이력으로만 계산한다(값이 늘지 않음).
+#  - 바뀐 것이 있을 때만 main에 커밋한다. 이 커밋(GITHUB_TOKEN)은 APK 빌드를 새로 돌리지 않는다.
+#    앱은 이 파일을 GitHub에서 직접 받아 보므로 새 APK 없이도 어머님 폰에 반영된다.
+on:
+  schedule:
+    - cron: '5 22 * * 0-4'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/memory/**'
+      - '.github/workflows/memory-data.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: memory-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build memory.json (ECOS)
+        env:
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          ECOS_STAT_CODE: ${{ vars.ECOS_STAT_CODE }}
+        run: node tools/memory/build-memory.js
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- www/data/memory.json tools/memory/ecos_history.json; then
+            echo "바뀐 것 없음"; exit 0
+          fi
+          git config user.name "memory-data-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add www/data/memory.json tools/memory/ecos_history.json
+          git commit -m "반도체 탭 자료 갱신 $(date -u +%Y-%m-%d)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
+      # 키가 있는데 ECOS에서 받지 못했으면 실패로 표시 → GitHub가 저장소 주인에게 메일로 알린다(자료는 저장된 값으로 이미 만들어 둠)
+      - name: Report ECOS status
+        run: |
+          node -e "const d=require('./www/data/memory.json'); console.log('ecos:', JSON.stringify(d.ecos)); if (d.ecos.status==='error') { console.log('::error::' + d.ecos.message); process.exit(1); } if (d.ecos.status==='seed') console.log('::notice::ECOS_API_KEY 비밀값이 없어 저장된 이력만 썼어요');"

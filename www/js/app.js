@@ -1,8 +1,8 @@
-/* 시장 나침반 v2 — 화면. 탭 3개(예측·기록·정보), 숫자와 그래프 위주, 문장은 카드당 한 줄. */
+/* 시장 나침반 v2 — 화면. 탭 6개(예측·기록·달력·반도체·성상현·정보), 숫자와 그래프 위주, 문장은 카드당 한 줄. */
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.3.0';
+  var APP_VERSION = '2.4.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -20,6 +20,7 @@
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.5h.01M12 14.5h.01M16 14.5h.01" stroke-width="2.6"/></svg>',
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+    mem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="6.5" width="11" height="11" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx=".5"/><path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3"/></svg>',
     sung: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
   };
@@ -394,7 +395,8 @@
     get payload() { return S.payload; }, now: function () { return D.nowMs(); }
   };
   function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
-  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, info: pageInfo };
+  function pageMem() { return window.MemoryPage ? window.MemoryPage.page(H) : { html: '' }; }
+  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, mem: pageMem, sung: pageSung, info: pageInfo };
   function render() {
     Ch.reset();
     var pg = PAGES[S.tab]();
@@ -498,6 +500,7 @@
     var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
     var d = el.dataset;
     if (/^sg/.test(d.act) && window.SungPage && window.SungPage.onAct(d.act, d, H)) return;
+    if (/^mm/.test(d.act) && window.MemoryPage && window.MemoryPage.onAct(d.act, d, H)) return;
     switch (d.act) {
       case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
       case 'refresh': refresh(true); break;
@@ -544,12 +547,13 @@
     var qs = D.params;
     if (qs.get('scale')) S.sysScale = +qs.get('scale');
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['mem', '반도체'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
     Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
       S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
+      if (qs.get('mm') && window.MemoryPage) window.MemoryPage.setState({ item: qs.get('mm') });
       if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;

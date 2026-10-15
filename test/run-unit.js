@@ -299,6 +299,32 @@ section('예측 달력');
 }
 
 // ------------------------------------------------------------------
+section('반도체 페이지 자료 (메모리 가격 사이클)');
+{
+  const MC = require(path.join(__dirname, '../tools/memory/memcalc.js'));
+  const H0 = JSON.parse(fs.readFileSync(path.join(__dirname, '../tools/memory/ecos_history.json'), 'utf8'));
+  const A = MC.analyze(H0.rows.map(r => ({ m: r.m, v: r.dram_cc })), '1996-01');
+  const B = MC.analyze(H0.rows.map(r => ({ m: r.m, v: r.nand_cc })), '2003-01');
+  // 노트북(파이썬) 분석 결과와 같은지 — 2026-08(잠정)까지 자료 기준
+  if (H0.rows[H0.rows.length - 1].m === '2026-08') {
+    eq('D램 고점·저점', A.turningPoints.map(t => t.m + t.type).join(' '), '1996-01P 1999-06T 2000-08P 2001-10T 2004-04P 2006-03T 2006-09P 2009-01T 2010-05P 2012-01T 2014-09P 2016-07T 2018-07P 2020-10T 2021-07P 2023-08T');
+    eq('D램 지금 상승기', [A.current.monthsSinceTp, A.current.sinceTpPct, A.current.peakR3Month, A.current.peakR3Pct, A.current.r3Pct], [36, 471.1, '2026-03', 68.3, 12.6]);
+    eq('D램 반토막 신호 20번 중 13번', [A.event.n6, A.event.down6, A.event.lastTrigger, A.event.onNow], [20, 13, '2026-07', true]);
+    eq('D램 상승률 정점→가격 정점 간격', A.momentum.map(m => m.lag), [10, 26, 0, 6, 17, 15, 3]);
+    eq('낸드 지금 상승기', [B.current.lastTp.m, B.current.peakR3Month, B.current.peakR3Pct, B.event.n6, B.event.down6], ['2025-02', '2025-12', 59.3, 12, 7]);
+    eq('국면 판단', [A.phase.code, B.phase.code], ['late', 'late']);
+  }
+  ok('빈 달이 있으면 멈춤', (() => { try { MC.clean([{ m: '2020-01', v: 1 }, { m: '2020-03', v: 1 }]); return false; } catch (e) { return true; } })());
+  eq('국면: 두 달 연속 하락이면 꺾이는 중', MC.phase({ r3Pct: -1, r3PrevPct: -0.5, peakR3Pct: 50, lastTp: { type: 'T' } }).code, 'turning');
+  eq('국면: 하락기 반등이면 바닥 다지기', MC.phase({ r3Pct: 3, r3PrevPct: -2, lastTp: { type: 'P' } }).code, 'bottom');
+  const M = JSON.parse(fs.readFileSync(path.join(W, 'data/memory.json'), 'utf8'));
+  ok('묶인 memory.json 모양', M.v === 1 && M.items.dram.series.length > 200 && M.items.nand.series.length > 200 && /^\d{4}-\d{2}$/.test(M.latest.month));
+  eq('묶인 memory.json = 이력으로 다시 계산한 값', [M.latest.month, M.items.dram.current.r3Pct, M.items.nand.current.r3Pct], [H0.rows[H0.rows.length - 1].m, A.current.r3Pct, B.current.r3Pct]);
+  ok('원격 주소는 이 저장소 main', /raw\.githubusercontent\.com\/hj5952009\/mom-market-app\/main\/www\/data\/memory\.json/.test(fs.readFileSync(path.join(W, 'js/memory.js'), 'utf8')));
+  ok('index.html에 memory.js', /js\/memory\.js/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')));
+}
+
+// ------------------------------------------------------------------
 section('기록 계산');
 const hist = [true, true, false, true, true, true].map((v, i) => ({ date: '2026-01-0' + (i + 1), in95: v }));
 eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rate.toFixed(3)), [0.667, 0.667, 0.667, 1]);
@@ -306,14 +332,14 @@ eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rat
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'memory.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.3.0', /versionName "2\.3\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.4.0', /versionName "2\.4\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

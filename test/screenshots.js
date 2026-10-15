@@ -20,7 +20,8 @@ function findChrome() {
 }
 
 const SHOTS = [];
-const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info'], ['09_cal', 'tab=cal'], ['11_sung_sum', 'tab=sung']];
+const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info'], ['09_cal', 'tab=cal'], ['11_sung_sum', 'tab=sung'], ['12_mem', 'tab=mem']];
+SHOTS.push(['12_mem_nand_light_x1.0', 'tab=mem&mm=nand&scale=1.0', { theme: 'light' }]);
 for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3']) {
   SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
 }

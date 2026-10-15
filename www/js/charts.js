@@ -730,7 +730,143 @@
     });
   }
 
+  // ================================================================== 반도체 탭
+  function ymDot(ym) { return ym.slice(0, 4) + '.' + ym.slice(5, 7); }
+  // 해마다 1월(또는 n년마다)에 연도 라벨 — 겹치면 건너뜀
+  function yearLabels(M, xOf, F, w, h, every) {
+    var s = '', lastR = -1e9, yw = tw('0000', F);
+    M.forEach(function (m, j) {
+      if (m.slice(5) !== '01' || (+m.slice(0, 4)) % (every || 1)) return;
+      var xx = xOf(j), x0 = xx - yw / 2; if (x0 < lastR + 6 || xx + yw / 2 > w || x0 < 0) return;
+      s += T(xx, h - F * 0.35, m.slice(0, 4), F, 'c-txt num', 'middle'); lastR = xx + yw / 2;
+    });
+    return s;
+  }
+
+  /* 월별 지수 선(로그 눈금) 여러 개 + 하락기 회색 띠.
+   * d: {lines:[{name, cls, key, pts:[[ym, v]]}], shades:[[ym0, ym1]]} — 모든 선은 같은 달 축(첫 선 기준) */
+  function memLines(el, d) {
+    var M = d.lines[0].pts.map(function (p) { return p[0]; }), n = M.length;
+    var idx = {}; M.forEach(function (m, i) { idx[m] = i; });
+    var vals = []; d.lines.forEach(function (l) { l.pts.forEach(function (p) { if (p[1] > 0) vals.push(p[1]); }); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    mount(el, d.label || '월별 가격 지수', function (w, F) {
+      var top = F * 0.8, h = Math.round(F * 15), bot = h - F * 1.9;
+      var ly = lin(Math.log(lo * 0.9), Math.log(hi * 1.1), bot, top), y = function (v) { return ly(Math.log(v)); };
+      var ticks = []; [1, 2, 5].forEach(function (m0) { for (var e = -1; e <= 7; e++) { var t = m0 * Math.pow(10, e); if (t >= lo * 0.9 && t <= hi * 1.1) ticks.push(t); } });
+      ticks.sort(function (a, b) { return a - b; });
+      var left = Math.max.apply(null, ticks.map(function (t) { return tw(U.fmtInt(t), F); }).concat([tw('00', F)])) + 8;
+      var ends = d.lines.map(function (l) { var p = l.pts[l.pts.length - 1]; return { l: l, v: p[1], s: l.name + ' ' + U.fmtInt(p[1]) }; });
+      var right = Math.max.apply(null, ends.map(function (e) { return tw(e.s, F); })) + 10;
+      var x = lin(0, n - 1, left, w - right), s = '';
+      (d.shades || []).forEach(function (sh) {
+        var a = idx[sh[0]], b = idx[sh[1]]; if (a == null && b == null) return;
+        a = a == null ? 0 : a; b = b == null ? n - 1 : b;
+        s += '<rect x="' + n1(x(a)) + '" y="' + n1(top) + '" width="' + n1(Math.max(1, x(b) - x(a))) + '" height="' + n1(bot - top) + '" class="c-track"/>';
+      });
+      ticks.forEach(function (t) { s += L(left, y(t), w - right, y(t), 'c-grid') + T(left - 6, y(t) + F * 0.35, U.fmtInt(t), F, 'c-txt num', 'end'); });
+      d.lines.forEach(function (l) { s += P(poly(l.pts.filter(function (p) { return p[1] > 0; }).map(function (p) { return [x(idx[p[0]]), y(p[1])]; })), l.cls); });
+      var lab = ends.map(function (e) { return { y: y(e.v) + F * 0.35, e: e }; });
+      spread(lab, F * 1.2, top, bot);
+      lab.forEach(function (o) { s += C(x(n - 1), y(o.e.v), 4, o.e.l.dot || 'c-dot') + T(w - right + 8, o.y, o.e.s, F, 'c-strong num', 'start'); });
+      s += L(left, bot, w - right, bot, 'c-axis') + yearLabels(M, x, F, w - right, h, n > 150 ? 3 : 1);
+      return {
+        h: h, svg: s, stops: [[x(n - 1), top]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px))));
+          var dots = [], rows = [];
+          d.lines.forEach(function (l) { var p = l.pts[j]; if (p && p[1] > 0) { dots.push({ x: x(j), y: y(p[1]), r: 4.5, cls: l.dot || 'c-dot' }); rows.push({ k: l.key, label: l.name, value: (Math.round(p[1] * 10) / 10).toFixed(1) }); } });
+          return { cx: x(j), cy0: top, cy1: bot, dots: dots, title: ymLab(M[j]), rows: rows };
+        }
+      };
+    });
+  }
+
+  /* 월별 3개월 변화율 막대(0 기준, 오르면 빨강·내리면 파랑) + 이번 사이클 최고 표시.
+   * d: {pts:[[ym, pct]], peak:{m, v}, label} */
+  function memBars(el, d) {
+    var pts = d.pts.filter(function (p) { return p[1] != null; }), n = pts.length;
+    mount(el, d.label || '3개월 전 대비 변화율', function (w, F) {
+      var top = F * 1.4, h = Math.round(F * 13), bot = h - F * 1.9;
+      var vs = pts.map(function (p) { return p[1]; }), mn = Math.min(0, Math.min.apply(null, vs)), mx = Math.max(0, Math.max.apply(null, vs));
+      var ticks = niceTicks(mn, mx, 4), y = lin(Math.min(mn, ticks[0]), Math.max(mx, ticks[ticks.length - 1]), bot, top);
+      var left = Math.max.apply(null, ticks.map(function (t) { return tw((t > 0 ? '+' : '') + t + '%', F); })) + 8;
+      var gw = (w - left) / n, bw = Math.max(2, Math.min(18, gw * 0.7)), s = '';
+      var x = function (j) { return left + gw * (j + 0.5); };
+      ticks.forEach(function (t) { s += L(left, y(t), w, y(t), t === 0 ? 'c-axis' : 'c-grid') + T(left - 6, y(t) + F * 0.35, (t > 0 ? '+' : t < 0 ? '−' : '') + Math.abs(t) + '%', F, 'c-txt num', 'end'); });
+      pts.forEach(function (p, j) {
+        var y0 = y(0), y1 = y(p[1]), hh = Math.abs(y1 - y0); if (hh < 0.5) return;
+        var r = Math.min(3, bw / 2, hh), xx = x(j) - bw / 2, cls = p[1] >= 0 ? 'f-up' : 'f-down', dd;
+        if (p[1] >= 0) dd = 'M' + n1(xx) + ',' + n1(y0) + 'V' + n1(y1 + r) + 'Q' + n1(xx) + ',' + n1(y1) + ' ' + n1(xx + r) + ',' + n1(y1) + 'H' + n1(xx + bw - r) + 'Q' + n1(xx + bw) + ',' + n1(y1) + ' ' + n1(xx + bw) + ',' + n1(y1 + r) + 'V' + n1(y0) + 'Z';
+        else dd = 'M' + n1(xx) + ',' + n1(y0) + 'V' + n1(y1 - r) + 'Q' + n1(xx) + ',' + n1(y1) + ' ' + n1(xx + r) + ',' + n1(y1) + 'H' + n1(xx + bw - r) + 'Q' + n1(xx + bw) + ',' + n1(y1) + ' ' + n1(xx + bw) + ',' + n1(y1 - r) + 'V' + n1(y0) + 'Z';
+        s += P(dd, cls);
+      });
+      var pk = -1; pts.forEach(function (p, j) { if (d.peak && p[0] === d.peak.m) pk = j; });
+      if (pk >= 0) {
+        var lab = '최고 ' + U.signPct(pts[pk][1], 0), lw2 = tw(lab, F), lx = Math.max(left + lw2 / 2, Math.min(w - lw2 / 2, x(pk)));
+        s += T(lx, y(pts[pk][1]) - 6, lab, F, 'c-strong num', 'middle');
+      }
+      s += yearLabels(pts.map(function (p) { return p[0]; }), x, F, w, h, 1);
+      return {
+        h: h, svg: s, stops: pts.map(function (p, j) { return [x(j), top]; }).filter(function (p, j) { return j % 3 === 0 || j === n - 1; }),
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.floor((px - left) / gw))), p = pts[j];
+          return { band: { x: x(j) - gw / 2, y: top, w: gw, h: bot - top }, ax: x(j), ay: top, title: ymLab(p[0]),
+            rows: [{ k: p[1] >= 0 ? '--up' : '--down', label: '3개월 전보다', value: U.signPct(p[1], 1) }] };
+        }
+      };
+    });
+  }
+
+  /* 지난 상승기 비교 가로 막대(저점→고점 상승률). d: {rows:[{label, pct, months, cur}]} */
+  function cycleBars(el, d) {
+    var rows = d.rows;
+    mount(el, '지난 상승기와 지금 비교', function (w, F) {
+      var barH = 16, rowH = Math.max(F * 1.5, barH) + 12, h = rows.length * rowH, s = '';
+      var labW = Math.max.apply(null, rows.map(function (r) { return tw(r.label, F, r.cur); })) + 10;
+      var vtx = rows.map(function (r) { return U.signPct(r.pct, 0) + ' · ' + r.months + '개월'; });
+      var valW = Math.max.apply(null, vtx.map(function (t) { return tw(t, F); })) + 8;
+      var mx = Math.max.apply(null, rows.map(function (r) { return r.pct; })), x = lin(0, mx, labW, w - valW);
+      rows.forEach(function (r, i) {
+        var yy = i * rowH + (rowH - barH) / 2;
+        s += T(labW - 8, yy + barH / 2 + F * 0.35, r.label, F, r.cur ? 'c-strong' : 'c-lab', 'end');
+        s += hBar(x(0), x(Math.max(0, r.pct)), yy, barH, r.cur ? 'b1' : 'b4');
+        s += T(x(Math.max(0, r.pct)) + 6, yy + barH / 2 + F * 0.35, vtx[i], F, r.cur ? 'c-strong num' : 'c-txt num', 'start');
+      });
+      return {
+        h: h, svg: s, stops: rows.map(function (r, i) { return [w / 2, i * rowH + rowH / 2]; }),
+        probe: function (px, py) {
+          var i = Math.max(0, Math.min(rows.length - 1, Math.floor(py / rowH))), r = rows[i];
+          return { band: { x: -4, y: i * rowH, w: w + 8, h: rowH }, ax: x(Math.max(0, r.pct)), ay: i * rowH, title: r.full || r.label,
+            rows: [{ k: r.cur ? '--band-1' : '--band-4', label: '저점에서', value: U.signPct(r.pct, 0) }, { label: '기간', value: r.months + '개월' }] };
+        }
+      };
+    });
+  }
+
+  /* 과거 같은 신호 뒤 6개월 결과 점: 더 낮아짐 파랑, 더 높아짐 빨강, 아직 모름 빈 원. d: {eps:[{m, chg6Pct}]} */
+  function eventDots(el, d) {
+    var eps = d.eps;
+    mount(el, '같은 신호가 나왔던 때와 6개월 뒤', function (w, F) {
+      var n = eps.length, sp = w / n, r = Math.max(4, Math.min(9, sp * 0.36)), cy = r + 6, h = cy + r + F * 1.6, s = '';
+      var x = function (i) { return sp * (i + 0.5); };
+      eps.forEach(function (e, i) {
+        s += e.chg6Pct == null ? C(x(i), cy, r - 1, 'c-out') : C(x(i), cy, r, e.chg6Pct < 0 ? 'f-down' : 'f-up');
+      });
+      s += T(0, h - F * 0.3, eps[0].m.slice(0, 4), F, 'c-txt num', 'start') + T(w, h - F * 0.3, eps[n - 1].m.slice(0, 4), F, 'c-txt num', 'end');
+      return {
+        h: h, svg: s, stops: eps.map(function (e, i) { return [x(i), cy]; }),
+        probe: function (px) {
+          var i = Math.max(0, Math.min(n - 1, Math.floor(px / sp))), e = eps[i];
+          return { band: { x: x(i) - sp / 2, y: 0, w: sp, h: cy * 2 }, ax: x(i), ay: 0, title: ymLab(e.m) + ' 신호',
+            rows: e.chg6Pct == null ? [{ label: '6개월 뒤', value: '아직 몰라요' }] : [{ k: e.chg6Pct < 0 ? '--down' : '--up', label: '6개월 뒤 가격', value: U.signPct(e.chg6Pct, 0) }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
+    memLines: memLines, memBars: memBars, cycleBars: cycleBars, eventDots: eventDots,
     heat: heat, monthBars: monthBars, sungIndex: sungIndex,
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
     bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,

@@ -318,7 +318,7 @@
   var buildInfo = null;
   function getBuild() {
     if (buildInfo) return Promise.resolve(buildInfo);
-    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.3.0' }; })
+    return fetch('build.json').then(function (r) { return r.json(); }).catch(function () { return { build: 0, version: '2.4.0' }; })
       .then(function (b) { buildInfo = b; return b; });
   }
   function checkUpdate() {
@@ -390,6 +390,6 @@
   root.Data = {
     LS: LS, IDB: IDB, Native: Native,
     get demo() { return demo; }, params: params, nowMs: nowMs,
-    loadLast: loadLast, refresh: refresh, loadHL: loadHL, checkUpdate: checkUpdate, getBuild: getBuild, PAYLOAD_VERSION: PAYLOAD_VERSION
+    loadLast: loadLast, refresh: refresh, loadHL: loadHL, checkUpdate: checkUpdate, getBuild: getBuild, httpGet: httpGet, PAYLOAD_VERSION: PAYLOAD_VERSION
   };
 })(typeof window !== 'undefined' ? window : globalThis);
