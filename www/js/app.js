@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.3.0';
+  var APP_VERSION = '2.4.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -21,6 +21,7 @@
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
     sung: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
+    jw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 9.5h5v5h-5z"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
   };
 
@@ -394,7 +395,8 @@
     get payload() { return S.payload; }, now: function () { return D.nowMs(); }
   };
   function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
-  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, info: pageInfo };
+  function pageJw() { return window.JwPage ? window.JwPage.page(H) : { html: '' }; }
+  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, jw: pageJw, info: pageInfo };
   function render() {
     Ch.reset();
     var pg = PAGES[S.tab]();
@@ -498,6 +500,7 @@
     var el = e.target.closest('[data-act]'); if (!el || el.disabled) return;
     var d = el.dataset;
     if (/^sg/.test(d.act) && window.SungPage && window.SungPage.onAct(d.act, d, H)) return;
+    if (/^jw/.test(d.act) && window.JwPage && window.JwPage.onAct(d.act, d, H)) return;
     switch (d.act) {
       case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
       case 'refresh': refresh(true); break;
@@ -544,13 +547,14 @@
     var qs = D.params;
     if (qs.get('scale')) S.sysScale = +qs.get('scale');
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['sung', '성상현'], ['jw', '이주완'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
     Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
       S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
       if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
+      if (qs.get('jw') && window.JwPage) window.JwPage.setState({ sub: qs.get('jw'), open: qs.get('jwopen') ? (function (o) { o[qs.get('jwopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;
       if (/^(1m|3m|all)$/.test(qs.get('period') || '')) S.period = qs.get('period');

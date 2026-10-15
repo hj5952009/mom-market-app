@@ -280,6 +280,25 @@ section('성상현 관점 모델');
   })());
 }
 
+section('이주완 페이지 자료');
+{
+  const JW = JSON.parse(fs.readFileSync(path.join(W, 'data/jw.json'), 'utf8'));
+  const cats = Object.keys(JW.cats), vids = new Set(JW.videos.map(v => v.id));
+  ok('주장마다 판정·쉬운 설명·근거·영상', JW.claims.every(c => cats.includes(c.cat) && c.plain && c.ev.length && vids.has(c.v)), JW.claims.filter(c => !vids.has(c.v)).map(c => c.id));
+  ok('주장 id 겹침 없음', new Set(JW.claims.map(c => c.id)).size === JW.claims.length);
+  ok('예측 기록 결과는 맞음·틀림·진행 중', JW.record.every(r => ['ok', 'no', 'wait'].includes(r.res)));
+  const cnt = r => JW.record.filter(x => x.res === r).length;
+  eq('예측 기록: 결과 난 9건 중 5건 맞음', [cnt('ok'), cnt('no')], [5, 4]);
+  ok('예측 기록 최신순', JW.record.every((r, i) => i === 0 || JW.record[i - 1].when >= r.when));
+  ok('차트 분기 14개, 숫자 모두 있음', JW.chart.rows.length === 14 && JW.chart.rows.every(r => [r.price, r.prod, r.vol].every(Number.isFinite)));
+  ok('가격 오른 10분기 동안 생산 10번, 수출 물량 9번 증가 (요약 문장과 일치)', (function () {
+    const up = JW.chart.rows.slice(4); return up.length === 10 && up.filter(r => r.prod > 0).length === 10 && up.filter(r => r.vol > 0).length === 9;
+  })());
+  const ours = [].concat(JW.big.map(b => b.plain), JW.claims.map(c => c.plain), JW.terms.map(t => t.p), JW.signals.peak, JW.signals.up, JW.watch.map(w => w.look));
+  const DIRECT = /사세요|파세요|매수하세요|매도하세요|팔아라|추천|사라[.!]|사라$/;
+  ok('앱이 쓴 설명에 매수·매도 지시·추천 표현 없음', !ours.some(t => DIRECT.test(t)), ours.filter(t => DIRECT.test(t)));
+}
+
 section('예측 달력');
 {
   const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
@@ -306,14 +325,14 @@ eq('롤링 적중률(3일)', Compute.rollingHit(hist, 3, 'in95').map(r => +r.rat
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'jw.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
   ok('투자 권유·단정 표현 없음: js/' + f, hits.length === 0, hits);
 });
 ok('알림 문구', /body: '오늘 코스피 예측이 준비됐어요'/.test(fs.readFileSync(path.join(W, 'js/data.js'), 'utf8')));
-ok('versionName 2.3.0', /versionName "2\.3\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.4.0', /versionName "2\.4\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

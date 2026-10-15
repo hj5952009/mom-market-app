@@ -20,7 +20,7 @@ function findChrome() {
 }
 
 const SHOTS = [];
-const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info'], ['09_cal', 'tab=cal'], ['11_sung_sum', 'tab=sung']];
+const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record'], ['03_info', 'tab=info'], ['09_cal', 'tab=cal'], ['11_sung_sum', 'tab=sung'], ['12_jw_sum', 'tab=jw']];
 for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3']) {
   SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
 }
@@ -45,6 +45,12 @@ SHOTS.push(['11_sung_model_dark_x1.3', 'tab=sung&sg=model&scale=1.3', { theme: '
 SHOTS.push(['08_tooltip_sgidx_light_x1.0', 'tab=sung&sg=model', { theme: 'light', viewportOnly: true, tap: ['#c-sgidx', 0.7, 0.3] }]);
 SHOTS.push(['11_sung_learn_light_x1.0', 'tab=sung&sg=learn', { theme: 'light' }]);
 SHOTS.push(['08_tooltip_heat_light_x1.0', 'tab=sung', { theme: 'light', viewportOnly: true, scrollTo: '#c-sgheat', tap: ['#c-sgheat', 0.9, 0.3] }]);
+SHOTS.push(['12_jw_claims_light_x1.0', 'tab=jw&jw=claims&jwopen=c4', { theme: 'light' }]);
+SHOTS.push(['12_jw_claims_dark_x1.3', 'tab=jw&jw=claims&jwopen=c10&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['12_jw_rec_light_x1.0', 'tab=jw&jw=rec', { theme: 'light' }]);
+SHOTS.push(['12_jw_rec_dark_x1.3', 'tab=jw&jw=rec&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['08_tooltip_jwpv_light_x1.0', 'tab=jw', { theme: 'light', viewportOnly: true, tap: ['#c-jwpv', 0.9, 0.3] }]);
+SHOTS.push(['08_tooltip_jwpv_dark_x1.3', 'tab=jw&scale=1.3', { theme: 'dark', viewportOnly: true, tap: ['#c-jwpv', 0.3, 0.7] }]);
 SHOTS.push(['10_info_fresh_usmissing_light_x1.0', 'tab=info&scenario=usmissing', { theme: 'light' }]);
 SHOTS.push(['09_cal_day1012_light_x1.0', 'tab=cal&day=2026-10-12', { theme: 'light' }]);
 SHOTS.push(['09_cal_pending_light_x1.0', 'tab=cal&day=2026-10-14', { theme: 'light', viewportOnly: true }]);

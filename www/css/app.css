@@ -222,7 +222,7 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 /* ---------- 하단 탭 ---------- */
 .tabs{
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--card); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(5, 1fr); padding-bottom: env(safe-area-inset-bottom);
+  display: grid; grid-template-columns: repeat(6, 1fr); padding-bottom: env(safe-area-inset-bottom);
 }
 .tabs button{
   min-height: var(--tabbar); border: 0; background: transparent; color: var(--muted); font-size: .875rem; font-weight: 600;
@@ -411,3 +411,43 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .sgverdict.ok{ background: var(--cal-80); color: var(--ink); }
 .sgtab td small, .sgtab th small{ display: block; font-size: .6875rem; color: var(--muted); font-weight: 500; }
 .sgsteps li + li{ margin-top: 6px; }
+
+/* ---------- 이주완 탭 ---------- */
+.jwb{ display: inline-block; font-size: .8125rem; font-weight: 700; line-height: 1.5; padding: 1px 9px; border-radius: 999px; background: var(--chip-bg); color: var(--ink-2); white-space: nowrap; }
+.jwb.ok{ background: var(--cal-80); color: var(--ink); }
+.jwb.part{ background: var(--cal-95); color: var(--band-1); box-shadow: inset 0 0 0 1px var(--band-3); }
+.jwb.no{ background: var(--down-wash); color: var(--down); }
+.jwb.wait{ background: var(--shade); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line); }
+.jwb.na{ background: var(--chip-bg); color: var(--muted); }
+.jwbig{ padding: 14px 0; border-top: 1px solid var(--line); }
+.jwbig:first-of-type{ border-top: 0; padding-top: 10px; }
+.jwbig h3{ font-size: 1.0625rem; font-weight: 700; line-height: 1.45; margin-top: 6px; }
+.jwbig p{ color: var(--ink-2); font-size: .9375rem; margin-top: 4px; }
+.jwtally{ display: flex; gap: 8px; margin: 10px 0 12px; }
+.jwt{ flex: 1 1 0; text-align: center; padding: 10px 4px; border-radius: 12px; background: var(--shade); }
+.jwt b{ display: block; font-family: var(--numfont); font-size: 1.75rem; font-weight: 700; line-height: 1.15; }
+.jwt small{ display: block; font-size: .8125rem; color: var(--muted); font-weight: 600; }
+.jwt.ok b{ color: var(--band-1); } .jwt.no b{ color: var(--down); }
+.jwsig{ display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 10px; }
+.jwsig h3{ font-size: .9375rem; font-weight: 700; padding-left: 10px; border-left: 4px solid var(--muted); }
+.jwsig h3.dn{ border-color: var(--down); } .jwsig h3.upc{ border-color: var(--up); }
+.jwsig ul{ margin: 6px 0 0; padding-left: 1.1em; color: var(--ink-2); font-size: .9375rem; }
+.jwsig li + li{ margin-top: 3px; }
+.jwlive{ list-style: none; margin: 4px 0 0; padding: 0; }
+.jwlive li{ display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; font-size: .9375rem; }
+.jwlive .sgv{ display: flex; gap: 8px; align-items: baseline; }
+.jwlive .sgv b{ display: inline; }
+.jwwatch, .jwvids, .jwrec{ list-style: none; margin: 8px 0 0; padding: 0; }
+.jwwatch li{ display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.jwwatch li:first-child, .jwvids li:first-child, .jwrec li:first-child{ border-top: 0; }
+.jwd{ flex: none; min-width: 5.2em; white-space: nowrap; font-weight: 700; color: var(--band-1); font-size: .9375rem; }
+.jwwatch b, .jwvids b, .jwrec b{ display: block; font-weight: 700; line-height: 1.45; }
+.jwwatch small, .jwrec small{ display: block; color: var(--ink-2); font-size: .875rem; margin-top: 2px; }
+.jwvids li{ display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.jwvids li > div{ flex: 1 1 auto; min-width: 0; }
+.jwvids small{ display: block; color: var(--muted); font-size: .8125rem; }
+.jwvids .btn{ flex: none; }
+.jwrec li{ padding: 12px 0; border-top: 1px solid var(--line); }
+.jwrh{ display: flex; justify-content: space-between; align-items: center; font-size: .8125rem; color: var(--muted); margin-bottom: 4px; }
+.jwleg{ margin: 8px 0 4px; }
+.sp-m .jwb{ margin-right: 4px; vertical-align: 1px; }

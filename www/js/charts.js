@@ -730,8 +730,61 @@
     });
   }
 
+  /* 이주완 탭: D램 가격 전년비(위, 오르면 빨강·내리면 파랑)와 반도체 생산·집적회로 수출물량 전년비(아래), 분기 축.
+   * d: {rows:[{q:'2024-1', price, prod, vol}], from:'2024-1'(가격 상승 구간 시작, 옅은 면)} */
+  function jwPriceVol(el, d) {
+    var R = d.rows, n = R.length;
+    function sg(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%'; }
+    mount(el, 'D램 가격과 생산·수출 물량, 전년 대비', function (w, F) {
+      var labW = tw('−200', F) + 6, x0 = labW, x1 = w, gw = (x1 - x0) / n;
+      var h1 = 132, gap = F * 2.4, h2 = 104, axisH = F * 1.7, top = F * 1.1, h = top + h1 + gap + h2 + axisH, s = '';
+      var pMin = Math.min(-60, Math.min.apply(null, R.map(function (r) { return r.price; }))), pMax = Math.max.apply(null, R.map(function (r) { return r.price; }).concat([50]));
+      var qv = R.map(function (r) { return r.prod; }).concat(R.map(function (r) { return r.vol; }));
+      var qMin = Math.min(-10, Math.min.apply(null, qv)), qMax = Math.max(10, Math.max.apply(null, qv));
+      var yp = lin(pMin, pMax * 1.08, top + h1, top), b0 = top + h1 + gap, yq = lin(qMin * 1.1, qMax * 1.1, b0 + h2, b0);
+      var si = R.map(function (r) { return r.q; }).indexOf(d.from);
+      if (si >= 0) s += '<rect x="' + n1(x0 + si * gw) + '" y="0" width="' + n1((n - si) * gw) + '" height="' + n1(b0 + h2) + '" class="c-shade"/>';
+      if (si >= 0) s += T(x0 + si * gw + 4, F * 0.85, '값이 오른 ' + (n - si) + '분기', F * 0.9, 'c-lab', 'start');
+      niceTicks(0, pMax, 2).forEach(function (t) { s += L(x0, yp(t), x1, yp(t), t === 0 ? 'c-axis' : 'c-grid'); s += T(0, yp(t) + F * 0.35, String(t), F, 'c-txt num', 'start'); });
+      niceTicks(qMin, qMax, 3).forEach(function (t) { s += L(x0, yq(t), x1, yq(t), t === 0 ? 'c-axis' : 'c-grid'); s += T(0, yq(t) + F * 0.35, (t < 0 ? '−' : '') + Math.abs(t), F, 'c-txt num', 'start'); });
+      s += T(x0, top + h1 + gap * 0.62, '생산·수출 물량 (%)', F * 0.9, 'c-lab', 'start');
+      var vbar = function (cx, bw, y0, y1, cls) {
+        var hh = Math.abs(y1 - y0); if (hh < 0.5) return '';
+        var r = Math.min(3, bw / 2, hh), x = cx - bw / 2, d2;
+        if (y1 < y0) d2 = 'M' + n1(x) + ',' + n1(y0) + 'V' + n1(y1 + r) + 'Q' + n1(x) + ',' + n1(y1) + ' ' + n1(x + r) + ',' + n1(y1) + 'H' + n1(x + bw - r) + 'Q' + n1(x + bw) + ',' + n1(y1) + ' ' + n1(x + bw) + ',' + n1(y1 + r) + 'V' + n1(y0) + 'Z';
+        else d2 = 'M' + n1(x) + ',' + n1(y0) + 'V' + n1(y1 - r) + 'Q' + n1(x) + ',' + n1(y1) + ' ' + n1(x + r) + ',' + n1(y1) + 'H' + n1(x + bw - r) + 'Q' + n1(x + bw) + ',' + n1(y1) + ' ' + n1(x + bw) + ',' + n1(y1 - r) + 'V' + n1(y0) + 'Z';
+        return P(d2, cls);
+      };
+      var pw = Math.min(18, gw * 0.62), qw = Math.min(9, gw * 0.34);
+      R.forEach(function (r, i) {
+        var cx = x0 + (i + 0.5) * gw;
+        s += vbar(cx, pw, yp(0), yp(r.price), r.price >= 0 ? 'f-up' : 'f-down');
+        s += vbar(cx - qw / 2 - 0.5, qw, yq(0), yq(r.prod), 'b1');
+        s += vbar(cx + qw / 2 + 0.5, qw, yq(0), yq(r.vol), 'b3');
+      });
+      // 가장 큰 두 값만 숫자로
+      var big = R.map(function (r, i) { return i; }).sort(function (a, b) { return R[b].price - R[a].price; }).slice(0, 2);
+      big.forEach(function (i) { s += T(x0 + (i + 0.5) * gw, yp(R[i].price) - 5, '+' + Math.round(R[i].price) + '%', F * 0.9, 'c-strong num', 'middle'); });
+      var lastR = -1e9;
+      R.forEach(function (r, i) {
+        if (r.q.slice(5) !== '1') return;
+        var lx = x0 + i * gw + 2, yw = tw('0000', F); if (lx < lastR + 6 || lx + yw > w) return;
+        s += T(lx, h - F * 0.35, r.q.slice(0, 4), F, 'c-txt num', 'start'); lastR = lx + yw;
+      });
+      var stops = R.map(function (r, i) { return [x0 + (i + 0.5) * gw, top + h1 / 2]; });
+      return {
+        h: h, svg: s, stops: stops,
+        probe: function (px) {
+          var i = Math.max(0, Math.min(n - 1, Math.floor((px - x0) / gw))), r = R[i];
+          return { band: { x: x0 + i * gw, y: 0, w: gw, h: b0 + h2 }, ax: x0 + (i + 0.5) * gw, ay: 0, title: r.q.slice(0, 4) + '년 ' + r.q.slice(5) + '분기',
+            rows: [{ k: r.price >= 0 ? '--up' : '--down', label: 'D램 가격', value: sg(r.price) }, { k: '--band-1', label: '반도체 생산', value: sg(r.prod) }, { k: '--band-3', label: '수출 물량', value: sg(r.vol) }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
-    heat: heat, monthBars: monthBars, sungIndex: sungIndex,
+    heat: heat, monthBars: monthBars, sungIndex: sungIndex, jwPriceVol: jwPriceVol,
     fan: fan, density: density, gauge: gauge, ladder: ladder, scenarios: scenarios, moves: moves,
     bands: bands, calibration: calibration, tiers: tiers, rolling: rolling, dots: dots, dayBar: dayBar,
     redrawAll: redrawAll, reset: reset, _tw: tw, _niceTicks: niceTicks
