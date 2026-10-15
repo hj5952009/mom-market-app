@@ -1,6 +1,7 @@
 /* 이주완 페이지 — 이주완 박사의 메모리 반도체 주장을 한국은행 통계와 회사 실적으로 확인한 결과(data/jw.json).
- * 하위 화면: 요약 · 모델 · 공급 · 주장 · 기록. 판정과 설명은 앱이 쓴 것이고, 영상은 '영상 보기'로 유튜브에서 연다.
- * '모델'·'공급'은 js/semi.js가 그린다(매일 자동으로 새로 계산되는 공급 모델 자료 semi.json). */
+ * 하위 화면: 요약 · 모델 · 공급 · 사이클 · 주장 · 기록. 판정과 설명은 앱이 쓴 것이고, 영상은 '영상 보기'로 유튜브에서 연다.
+ * '모델'·'공급'은 js/semi.js가 그린다(매일 자동으로 새로 계산되는 공급 모델 자료 semi.json).
+ * '사이클'은 js/memory.js가 그린다(D램·낸드 수출가격으로 본 가격 사이클, memory.json). */
 (function (root) {
   'use strict';
   var U = root.MCUtil, esc = U.esc;
@@ -29,7 +30,7 @@
   }
 
   function subNav() {
-    return '<div class="seg sgnav" role="group" aria-label="이주완 화면">' + [['sum', '요약'], ['model', '모델'], ['supply', '공급'], ['claims', '주장'], ['rec', '기록']].map(function (x) {
+    return '<div class="seg sgnav jwnav" role="group" aria-label="이주완 화면">' + [['sum', '요약'], ['model', '모델'], ['supply', '공급'], ['cycle', '사이클'], ['claims', '주장'], ['rec', '기록']].map(function (x) {
       return '<button type="button" data-act="jwSub" data-s="' + x[0] + '" aria-pressed="' + (ST.sub === x[0]) + '">' + x[1] + '</button>';
     }).join('') + '</div>';
   }
@@ -118,6 +119,7 @@
     }
     var mounts = [], body;
     if ((ST.sub === 'model' || ST.sub === 'supply') && root.SemiPage) return { html: subNav() + root.SemiPage.view(H, ST.sub, mounts), mounts: mounts };
+    if (ST.sub === 'cycle' && root.MemoryPage) return { html: subNav() + root.MemoryPage.view(H, mounts), mounts: mounts };
     if (ST.sub === 'claims') body = pageClaims(H);
     else if (ST.sub === 'rec') body = pageRec(H);
     else body = pageSum(H, H.payload, mounts);
@@ -132,10 +134,11 @@
         var all = DATA.claims.every(function (c) { return ST.open[c.id]; });
         DATA.claims.forEach(function (c) { ST.open[c.id] = !all; }); H.keep(); return true;
       case 'jwVid': H.openUrl('https://youtu.be/' + d.id); return true;
+      case 'jwCycItem': return !!(root.MemoryPage && root.MemoryPage.onAct(act, d, H));
     }
     return false;
   }
-  function setState(o) { for (var k in o) ST[k] = o[k]; }
+  function setState(o) { for (var k in o) ST[k] = o[k]; if (o && o.cycItem && root.MemoryPage) root.MemoryPage.setState({ item: o.cycItem }); }
 
   root.JwPage = { page: page, onAct: onAct, load: load, setState: setState };
 })(window);

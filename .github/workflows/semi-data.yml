@@ -4,6 +4,8 @@ name: Semiconductor data
 #  1) 한국은행 ECOS에서 반도체 생산능력·가동률, D램·플래시 수출물가, 수출금액·물량지수, 원/달러를 받는다
 #     (저장소 Secrets에 ECOS_API_KEY가 있으면 그 키, 없으면 공개 sample 키로 10건씩 받는다)
 #  2) tools/semi/jw_model.py로 모델을 다시 계산하고 build_app_json.py로 앱용 semi.json을 만든다
+#     같은 ECOS 표로 tools/memory/build-memory.js가 '사이클' 화면 자료 memory.json도 만든다
+#     (이 단계가 실패해도 semi.json은 그대로 올라가게 continue-on-error)
 #  3) 내용이 바뀌었으면 semi-data 가지(파일 몇 개만 있는 가지)에 올린다 → 앱이 그 파일을 받아 쓴다
 # 자료를 못 받거나 계산이 실패하면 실행이 실패로 표시되고 GitHub가 저장소 주인에게 메일로 알린다.
 on:
@@ -14,6 +16,7 @@ on:
     branches: [main, beta]
     paths:
       - 'tools/semi/**'
+      - 'tools/memory/**'
       - '.github/workflows/semi-data.yml'
 
 permissions:
@@ -45,6 +48,14 @@ jobs:
       - name: Run model and build semi.json
         run: python tools/semi/build_app_json.py
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build memory.json (사이클 화면)
+        continue-on-error: true
+        run: node tools/memory/build-memory.js --csv tools/semi/data/ecos_raw_wide.csv --out tools/semi/out/memory.json
+
       - name: Publish to semi-data branch (only when changed)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,12 +63,16 @@ jobs:
           set -e
           mkdir -p /tmp/pub
           cp tools/semi/out/semi.json tools/semi/out/summary.json tools/semi/data/ecos_raw_wide.csv /tmp/pub/
+          [ -f tools/semi/out/memory.json ] && cp tools/semi/out/memory.json /tmp/pub/ || echo "memory.json 없음(사이클 단계 실패) — semi.json만 올림"
           if git fetch --depth=1 origin semi-data 2>/dev/null && git show FETCH_HEAD:semi.json > /tmp/old.json 2>/dev/null; then
+            git show FETCH_HEAD:memory.json > /tmp/old_mem.json 2>/dev/null || echo '{}' > /tmp/old_mem.json
             if python3 -c "
-          import json, sys
+          import json, os, sys
           a = json.load(open('/tmp/old.json')); b = json.load(open('/tmp/pub/semi.json'))
           a.pop('generatedAt', None); b.pop('generatedAt', None)
-          sys.exit(0 if a == b else 1)"; then
+          ma = json.load(open('/tmp/old_mem.json')); mb = json.load(open('/tmp/pub/memory.json')) if os.path.exists('/tmp/pub/memory.json') else ma
+          ma.pop('builtAt', None); mb.pop('builtAt', None)
+          sys.exit(0 if a == b and ma == mb else 1)"; then
               echo "자료 변화 없음 — 올리지 않음"; exit 0
             fi
           fi

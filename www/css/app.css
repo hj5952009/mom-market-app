@@ -491,3 +491,9 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .smtab td{ padding: 9px 0; border-top: 1px solid var(--line); }
 .smtab td.num{ text-align: right; font-weight: 700; white-space: nowrap; padding-left: 10px; }
 .smtab tr:first-child td{ border-top: 0; }
+
+/* ---------- 이주완 탭 · 사이클 ---------- */
+.mmk .kpi .v{ font-size: 2rem; }
+.mmk .kpi.wide .v{ font-family: var(--serif); font-size: 1.625rem; font-weight: 700; line-height: 1.3; white-space: normal; }
+.jwnav{ flex-wrap: wrap; }
+.jwnav button{ flex: 1 1 auto; padding: 6px 8px; }

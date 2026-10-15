@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.5.0';
+  var APP_VERSION = '2.6.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -555,6 +555,7 @@
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
       S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
       if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
+      if (qs.get('cyc') && window.MemoryPage) window.MemoryPage.setState({ item: qs.get('cyc') });
       if (qs.get('jw') && window.JwPage) window.JwPage.setState({ sub: qs.get('jw'), open: qs.get('jwopen') ? (function (o) { o[qs.get('jwopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;

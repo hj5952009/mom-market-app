@@ -7,6 +7,7 @@ on:
       - 'tools/health-check.js'
       - '.github/workflows/data-health.yml'
       - 'tools/semi/**'
+      - 'tools/memory/**'
       - '.github/workflows/semi-data.yml'
       - '**.md'
       - 'screenshots/**'
