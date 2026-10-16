@@ -1,0 +1,222 @@
+{
+ "price_volume": {
+  "period": "2026-01~2026-09 vs 2025-01~2025-09",
+  "export_value_ic_pct": 192.26072708235603,
+  "export_volume_ic_bok_pct": 13.283248347916787,
+  "dram_price_usd_pct": 204.69944393092422,
+  "flash_price_usd_pct": 197.4686323184221,
+  "value_deflated_by_dram_pct": -4.082290629774854,
+  "value_deflated_by_flash_pct": -1.7507409757716363,
+  "production_semi_pct": 2.155275411090085,
+  "capacity_semi_pct": 8.463590415574696,
+  "claim_dram_pct": -40,
+  "claim_nand_pct": -60
+ },
+ "model12": {
+  "as_of": "2026-08",
+  "horizon_m": 12,
+  "features": {
+   "cap_g12": 0.08152660763420716,
+   "util_chg12": -0.07566666666666677
+  },
+  "pred_log": 0.013053347195733297,
+  "pred_pct": 1.313891403812928,
+  "band80_pct": [
+   -49.0611016944713,
+   101.50621495222892
+  ],
+  "resid_sd_log": 0.5365142721306517
+ },
+ "model6": {
+  "as_of": "2026-08",
+  "horizon_m": 6,
+  "features": {
+   "cap_g12": 0.08152660763420716,
+   "util_chg12": -0.07566666666666677
+  },
+  "pred_log": 0.0005899548378762269,
+  "pred_pct": 0.059012889545861924,
+  "band80_pct": [
+   -38.687830013036596,
+   63.2923131339028
+  ],
+  "resid_sd_log": 0.3821643149114339
+ },
+ "backtest12": [
+  {
+   "model": "공급(능력·가동률)",
+   "horizon_m": 12,
+   "n": 213,
+   "rmse_log": 0.5191409706670853,
+   "direction_hit_pct": 53.990610328638496,
+   "corr_pred_actual": 0.26752268396330314,
+   "rmse_vs_baseline_pct": -9.357730219533567
+  },
+  {
+   "model": "가격 추세만(평균회귀)",
+   "horizon_m": 12,
+   "n": 213,
+   "rmse_log": 0.5905212856355412,
+   "direction_hit_pct": 51.64319248826291,
+   "corr_pred_actual": 0.08785829288216256,
+   "rmse_vs_baseline_pct": 3.105308014708541
+  },
+  {
+   "model": "공급+가격 추세",
+   "horizon_m": 12,
+   "n": 213,
+   "rmse_log": 0.5407252722414543,
+   "direction_hit_pct": 53.52112676056338,
+   "corr_pred_actual": 0.16427967338774763,
+   "rmse_vs_baseline_pct": -5.589100508391908
+  },
+  {
+   "model": "기준선(과거 평균)",
+   "horizon_m": 12,
+   "n": 213,
+   "rmse_log": 0.5727360666545898,
+   "direction_hit_pct": 51.64319248826291,
+   "corr_pred_actual": 0.02396444858341939,
+   "rmse_vs_baseline_pct": 0.0
+  }
+ ],
+ "backtest6": [
+  {
+   "model": "공급(능력·가동률)",
+   "horizon_m": 6,
+   "n": 219,
+   "rmse_log": 0.37077803242505813,
+   "direction_hit_pct": 50.68493150684932,
+   "corr_pred_actual": -0.0083984677664797,
+   "rmse_vs_baseline_pct": 3.081185359303862
+  },
+  {
+   "model": "가격 추세만(평균회귀)",
+   "horizon_m": 6,
+   "n": 219,
+   "rmse_log": 0.3709107991510675,
+   "direction_hit_pct": 50.2283105022831,
+   "corr_pred_actual": 0.008626774575456594,
+   "rmse_vs_baseline_pct": 3.1180962609659746
+  },
+  {
+   "model": "공급+가격 추세",
+   "horizon_m": 6,
+   "n": 219,
+   "rmse_log": 0.374283548083609,
+   "direction_hit_pct": 52.51141552511416,
+   "corr_pred_actual": -0.029358977003263266,
+   "rmse_vs_baseline_pct": 4.0557649669888285
+  },
+  {
+   "model": "기준선(과거 평균)",
+   "horizon_m": 6,
+   "n": 219,
+   "rmse_log": 0.3596951578822649,
+   "direction_hit_pct": 50.2283105022831,
+   "corr_pred_actual": 0.06842332397449047,
+   "rmse_vs_baseline_pct": 0.0
+  }
+ ],
+ "coefs12": [
+  {
+   "feature": "cap_g12",
+   "coef": -1.6547353013460981,
+   "effect_of_1sd": -0.18916245218901548
+  },
+  {
+   "feature": "util_chg12",
+   "coef": -0.5683905763534457,
+   "effect_of_1sd": -0.07239182811256238
+  }
+ ],
+ "cycles": {
+  "up_median_m": 9.0,
+  "up_mean_m": 11.444444444444445,
+  "down_median_m": 20.0,
+  "down_mean_m": 17.666666666666668,
+  "n_up": 9,
+  "n_down": 9,
+  "claim_up_m": 18,
+  "claim_down_m": 30,
+  "claim_period_m": 48,
+  "down_median_fall_pct": -59.46029946797813,
+  "recent_up_mean_m": 18.666666666666668,
+  "recent_down_mean_m": 24.333333333333332,
+  "recent_n": 6,
+  "current_up_months": 37,
+  "current_up_change_pct": 484.04362754999,
+  "max_past_up_months": 25,
+  "max_past_up_change_pct": 248.94846469125844
+ },
+ "fx": {
+  "fx_recent3": 1420.9099999999999,
+  "fx_prev3": 1501.6000000000001,
+  "fx_recent3_label": "2026-07~2026-09",
+  "fx_prev3_label": "2026-04~2026-06",
+  "fx_last": 1359.0,
+  "fx_last_month": "2026-09",
+  "fair_fx_claim": 1150,
+  "op_effect_recent_vs_prev_pct": -11.29660000000004,
+  "op_effect_last_vs_prev_pct": -19.96400000000002,
+  "gap_vs_fair_won": 209.0,
+  "claim_1y_fx": "1,300원 초반"
+ },
+ "micron": {
+  "n_down_guides": 13,
+  "down_then_price_fell": 9,
+  "median_6m_after_down_guide": -12.380307573266268,
+  "n_up_guides": 17,
+  "up_then_price_fell": 4,
+  "median_6m_after_up_guide": 18.201449946012648,
+  "n_small_down_guides": 5,
+  "small_down_then_fell": 2,
+  "latest_guide_minus_actual": -0.75
+ },
+ "china": {
+  "slope_pp_per_q": 1.4999999999999996,
+  "latest": 10.0,
+  "quarters_to_20pct_linear": 6.666666666666669
+ },
+ "scenario_meta": {
+  "peak_assumed": "2026-09",
+  "peak_value_est": 289.16,
+  "peak_kind": "최신 실제값",
+  "falling": false,
+  "est_next": null,
+  "consensus": {
+   "quarter": "2026Q4",
+   "range": "10~15%",
+   "announced": "2026-09-30",
+   "path": {
+    "2026-09": 289.16,
+    "2026-10": 311.709384,
+    "2026-11": 317.52,
+    "2026-12": 323.33061599999996
+   }
+  },
+  "last_actual_month": "2026-09",
+  "last_actual": 289.16,
+  "level_2022_jul_aug": 90.45,
+  "model_12m_target_month": "2027-09",
+  "model_12m_point": 292.9592483832655,
+  "model_12m_lo": 147.2949183402668,
+  "model_12m_hi": 582.6753711558652,
+  "A_12m_median_pct_vs_peak": -47.49017109128019,
+  "B_12m_pct_vs_peak": -37.17852312456464,
+  "full_reversion_pct": -68.71973993636742
+ },
+ "supply_latest": {
+  "capacity": 196.7,
+  "util_sa": 88.9,
+  "util_sa_3m": 91.8,
+  "prod": 183.52109999999996,
+  "prod_3m": 187.9441333333333,
+  "cap_yoy": 8.494208494208477,
+  "prod_yoy_3m": 0.3549063218177828,
+  "util_norm": 103.0,
+  "cut_depth": 10.873786407766994,
+  "cap_minus_prod": 8.139302172390694
+ },
+ "supply_latest_month": "2026-08"
+}
