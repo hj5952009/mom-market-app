@@ -6,6 +6,8 @@ name: Semiconductor data
 #  2) tools/semi/jw_model.py로 모델을 다시 계산하고 build_app_json.py로 앱용 semi.json을 만든다
 #     같은 ECOS 표로 tools/memory/build-memory.js가 '사이클' 화면 자료 memory.json도 만든다
 #     (이 단계가 실패해도 semi.json은 그대로 올라가게 continue-on-error)
+#     tools/memory/cycle_extra.py가 memory.json에 '6개월 뒤 하락 확률'(사이클 모델)과 통계청 재고·출하 점검을 더한다
+#     (Secrets에 KOSIS_API_KEY가 있으면 통계청 자료도 새로 받고, 없으면 저장된 표를 쓴다)
 #  3) 내용이 바뀌었으면 semi-data 가지(파일 몇 개만 있는 가지)에 올린다 → 앱이 그 파일을 받아 쓴다
 # 자료를 못 받거나 계산이 실패하면 실행이 실패로 표시되고 GitHub가 저장소 주인에게 메일로 알린다.
 on:
@@ -38,7 +40,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install packages
-        run: pip install --quiet pandas numpy
+        run: pip install --quiet pandas numpy scikit-learn
 
       - name: Get ECOS data
         env:
@@ -55,6 +57,16 @@ jobs:
       - name: Build memory.json (사이클 화면)
         continue-on-error: true
         run: node tools/memory/build-memory.js --csv tools/semi/data/ecos_raw_wide.csv --out tools/semi/out/memory.json
+
+      - name: Add probability and supply check to memory.json (사이클 모델)
+        continue-on-error: true
+        env:
+          KOSIS_API_KEY: ${{ secrets.KOSIS_API_KEY }}
+        run: |
+          if [ -f tools/semi/out/memory.json ]; then
+            cp tools/semi/out/memory.json /tmp/memory_base.json
+            python tools/memory/cycle_extra.py --csv tools/semi/data/ecos_raw_wide.csv --mem tools/semi/out/memory.json || cp /tmp/memory_base.json tools/semi/out/memory.json
+          fi
 
       - name: Publish to semi-data branch (only when changed)
         env:

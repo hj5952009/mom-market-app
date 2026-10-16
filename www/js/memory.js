@@ -1,8 +1,9 @@
-/* 이주완 탭의 하위 화면 '사이클' — 메모리(D램·낸드) 가격이 지금 사이클의 어디쯤인지.
+/* 반도체 탭의 하위 화면 '사이클 모델' — 메모리(D램·낸드) 가격이 지금 사이클의 어디쯤인지.
+ * 더한 것(2.7.0): '6개월 뒤 가격이 지금보다 낮을 확률'(prob, tools/memory/cycle_extra.py)과 통계청 재고/출하 점검(kosis).
  * 자료: 한국은행 ECOS 수출물가지수(품목별) D램·플래시메모리, 계약통화 기준(2020=100), 월별.
  * semi-data 작업(.github/workflows/semi-data.yml)이 매일 ECOS에서 받은 표로 tools/memory/build-memory.js를 돌려
- * memory.json을 semi-data 가지에 함께 올린다. 앱은 그것을 6시간에 한 번까지 받아 보고,
- * 못 받으면 저장해 둔 것 → APK에 묶인 data/memory.json 순서로 쓴다. 화면은 js/jw.js가 이 모듈의 view()로 그린다. */
+ * memory.json을 semi-data 가지에 함께 올린다(확률·재고는 cycle_extra.py가 더함). 앱은 그것을 6시간에 한 번까지 받아 보고,
+ * 못 받으면 저장해 둔 것 → APK에 묶인 data/memory.json 순서로 쓴다. 화면은 js/jw.js가 이 모듈의 view()로 그린다. '한눈에'(js/semihub.js)도 data()로 같은 자료를 쓴다. */
 (function (root) {
   'use strict';
   var U = root.MCUtil, esc = U.esc;
@@ -71,6 +72,29 @@
       '<div class="kpi wide"><div class="v mid">' + esc(dr.phase.label) + '</div><div class="l">' + esc(dr.phase.text) + ' · D램, ' + esc(latestTxt) + ' 수출가격 기준</div></div>' +
       '</div>', 'kpicard mmk'));
 
+    // 1-1) 6개월 뒤 하락 확률 (사이클 모델 확률, 매달 그 전 자료로만 다시 학습)
+    var PB = Dd.prob;
+    if (PB && PB.items && PB.items.dram) {
+      var pd = PB.items.dram, pn = PB.items.nand || {}, mt = PB.metrics;
+      var hist = PB.hist.filter(function (h) { return h[0] >= '2016-01'; });
+      var drv = pd.drivers.filter(function (x) { return x.size >= 0.15; });
+      var dn = drv.filter(function (x) { return x.dir === 'down'; }).map(function (x) { return x.name; }), upd = drv.filter(function (x) { return x.dir === 'up'; }).map(function (x) { return x.name; });
+      out.push(H.card(H.head('6개월 뒤 가격이 지금보다 낮을 확률', ymLabel(PB.month) + ' 기준 · 과거 가격 흐름으로 계산') +
+        '<div class="mprob"><div><b class="num">' + Math.round(pd.p * 100) + '<span class="pc">%</span></b><small>D램' + (pd.p3ago != null ? ' · 3개월 전 ' + Math.round(pd.p3ago * 100) + '%' : '') + '</small></div>' +
+        (pn.p != null ? '<div><b class="num">' + Math.round(pn.p * 100) + '<span class="pc">%</span></b><small>낸드' + (pn.p3ago != null ? ' · 3개월 전 ' + Math.round(pn.p3ago * 100) + '%' : '') + '</small></div>' : '') + '</div>' +
+        H.chartBox('c-mmprob') +
+        '<div class="legend"><span><i class="ln" style="background:var(--band-1)"></i>D램</span><span><i class="ln" style="background:var(--ink)"></i>낸드</span><span><i class="ln dash"></i>50%</span></div>' +
+        (dn.length || upd.length ? '<p class="read" style="margin-top:10px">' + (dn.length ? '확률을 올린 것: <b>' + esc(dn.join(', ')) + '</b>' : '') + (dn.length && upd.length ? '<br>' : '') + (upd.length ? '확률을 내린 것: <b>' + esc(upd.join(', ')) + '</b>' : '') + '</p>' : '') +
+        '<p class="note">' + mt.from.slice(0, 4) + '~' + mt.to.slice(0, 4) + '년 ' + mt.n + '번을 매달 그 전 자료로만 맞혀 봤어요. 6개월 뒤 더 낮았던 때가 원래 ' + Math.round(mt.baseRate) + '%라서, 이 확률은 평균만 말할 때보다 ' +
+        (mt.gainPct > 0 ? '조금(' + mt.gainPct.toFixed(1) + '%) 나은' : '나아지지 않은') + ' 정도예요. 숫자 하나보다 방향이 바뀌는지를 보세요.</p>'));
+      mounts.push(function () {
+        H.Ch.semiLines(H.$('c-mmprob'), { months: hist.map(function (h) { return h[0]; }), label: '6개월 뒤 하락 확률', fmt: function (v) { return Math.round(v) + '%'; },
+          series: [{ name: 'D램', values: hist.map(function (h) { return h[1] == null ? null : h[1] * 100; }), cls: 's-b1', key: '--band-1' },
+            { name: '낸드', values: hist.map(function (h) { return h[2] == null ? null : h[2] * 100; }), cls: 'c-line thin', key: '--ink' },
+            { name: '50%', values: hist.map(function () { return 50; }), cls: 'c-proj', key: '--ink-2', dash: true }] });
+      });
+    }
+
     // 품목 고르기
     var seg = '<div class="seg sgnav" role="group" aria-label="품목">' + [['dram', 'D램'], ['nand', '낸드(플래시)']].map(function (x) {
       return '<button type="button" data-act="jwCycItem" data-i="' + x[0] + '" aria-pressed="' + (ST.item === x[0]) + '">' + x[1] + '</button>';
@@ -113,13 +137,29 @@
       (cur.peakR3Month ? '<p class="note">오르는 속도가 꼭대기를 찍은 뒤 가격 꼭대기까지는 과거 중간값 ' + stt.lagMedian + '개월(' + stt.lagMin + '~' + stt.lagMax + '개월) 걸렸어요. 지금은 ' + cur.monthsSincePeakR3 + '개월째예요.</p>' : '')));
     mounts.push(function () { H.Ch.eventDots(H.$('c-mmev'), { eps: ev.episodes }); });
 
-    // 6) 안내
+    // 6) 공급으로 다시 보기 (통계청 재고/출하) — 이주완 모델의 '감산' 주장을 데이터로 보완
+    var KO = Dd.kosis;
+    if (KO && KO.series && KO.series.length > 24) {
+      var ks = KO.series;
+      out.push(H.card(H.head('공급으로 다시 보기', '통계청 반도체 재고 ÷ 출하(계절조정) · 낮을수록 물건이 모자라요') + H.chartBox('c-mmko') +
+        '<div class="legend"><span><i class="ln"></i>재고 ÷ 출하</span><span><i class="ln dash"></i>2000년 이후 평균</span></div>' +
+        '<p class="read" style="margin-top:10px">' + esc(ymLabel(KO.month)) + ' 재고는 출하의 <b>' + KO.ratio.toFixed(2) + '배</b>예요. 평균(' + KO.ratioAvg.toFixed(2) + '배)의 절반도 안 되고, 2000년 이후 지금보다 낮았던 달은 ' + Math.round(KO.lowerShare) + '%뿐이에요. ' +
+        (KO.ratio > KO.ratio6ago + 0.05 ? '다만 6개월 전(' + KO.ratio6ago.toFixed(2) + '배)보다 올라 재고가 쌓이기 시작했어요.' : KO.ratio < KO.ratio6ago - 0.05 ? '6개월 전(' + KO.ratio6ago.toFixed(2) + '배)보다 더 빠듯해졌어요.' : '6개월 전(' + KO.ratio6ago.toFixed(2) + '배)과 비슷해요.') + '</p>' +
+        '<p class="note">재고가 출하보다 빨리 늘면(선이 오르면) 과거엔 가격이 약해졌어요. 이 자료를 확률 계산에도 넣어 봤지만 발표 시점 그대로 맞혀 보면 나아지지 않아, 점검용으로만 보여 드려요.</p>'));
+      mounts.push(function () {
+        H.Ch.semiLines(H.$('c-mmko'), { months: ks.map(function (x) { return x[0]; }), label: '재고 ÷ 출하', fmt: function (v) { return v.toFixed(2); },
+          series: [{ name: '재고÷출하', values: ks.map(function (x) { return x[1]; }), cls: 'c-line', key: '--ink' },
+            { name: '평균', values: ks.map(function () { return KO.ratioAvg; }), cls: 'c-proj', key: '--ink-2', dash: true }] });
+      });
+    }
+
+    // 7) 안내
     out.push(H.card(H.head('읽는 법', null) + '<ul class="list">' +
-      '<li>메모리 반도체는 삼성전자와 SK하이닉스의 주력 제품이라 코스피에 큰 영향을 줘요.</li>' +
-      '<li>주가는 보통 가격보다 몇 달 먼저 움직여요. 가격이 아직 올라도 오르는 속도가 줄면 주가가 먼저 흔들릴 수 있어요.</li>' +
-      '<li>지난 패턴으로 본 통계 참고용이에요. 이번 상승기는 과거보다 훨씬 길고 커서 과거와 다르게 흘러갈 수 있어요.</li></ul>'));
+      '<li>메모리는 삼성전자·SK하이닉스의 주력 제품이라 코스피에 큰 영향을 줘요. 주가는 보통 가격보다 몇 달 먼저 움직여요.</li>' +
+      '<li>이번 상승기는 과거보다 훨씬 길고 커서 과거 패턴과 다르게 흘러갈 수 있어요.</li></ul>'));
     var eTxt = Dd.ecos && Dd.ecos.status === 'error' ? ' · 최근 갱신 실패(저장된 값)' : '';
-    out.push('<p class="foot">통계적 참고용 · 투자 권유 아님<br>자료 한국은행 ECOS 수출물가지수(품목별, 계약통화 기준) · ' + esc(latestTxt) + '까지' + eTxt + '</p>');
+    out.push('<p class="foot">통계적 참고용 · 투자 권유 아님<br>자료 한국은행 ECOS 수출물가지수(품목별, 계약통화 기준) · ' + esc(latestTxt) + '까지' + eTxt +
+      (KO ? '<br>통계청 광업제조업동향 반도체 생산·출하·재고지수 · ' + esc(ymLabel(KO.month)) + '까지' : '') + '</p>');
     return out.join('');
   }
 
@@ -128,5 +168,5 @@
     return false;
   }
 
-  root.MemoryPage = { view: view, phaseChip: phaseChip, onAct: onAct, load: load, setState: function (o) { Object.assign(ST, o || {}); } };
+  root.MemoryPage = { data: function () { return DATA; }, view: view, phaseChip: phaseChip, onAct: onAct, load: load, setState: function (o) { Object.assign(ST, o || {}); } };
 })(window);

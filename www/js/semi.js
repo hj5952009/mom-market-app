@@ -1,13 +1,15 @@
 /* 반도체 페이지 — 이주완 박사의 '메모리 가격은 공급(감산·가동률)이 정한다'는 주장으로 만든 D램 가격 모델.
  * 자료(semi.json)는 GitHub Actions(.github/workflows/semi-data.yml)가 매일 한국은행 ECOS에서 새로 받아 계산해
  * 저장소의 semi-data 가지에 올린다. 앱은 그것을 받아 쓰고, 못 받으면 앱에 묶어 둔 data/semi.json을 쓴다.
- * 이주완 탭(js/jw.js)의 하위 화면 '모델'·'공급'을 그린다. */
+ * 반도체 탭(js/jw.js)의 하위 화면 '이주완 모델'을 그린다(2.7.0부터 예전 '모델'·'공급'을 한 화면으로 합침: 공급·환율 차트는 '자세히'로 접어 둠).
+ * 사이클 모델 자료(memory.json, js/memory.js)가 있으면 그것으로 박사 가정을 보완한다: 지난 상승기 최장 기간, 사이클 길이, 꼭대기 시기. */
 (function (root) {
   'use strict';
   var U = root.MCUtil, esc = U.esc, Dt = root.Data;
   var REMOTE = 'https://raw.githubusercontent.com/hj5952009/mom-market-app/semi-data/semi.json';
   var CACHE_KEY = 'semi1', MAX_AGE = 6 * 3600e3;
   var DATA = null, FROM = null, GOT = null, loading = null, failed = false, checking = false, tried = 0;
+  var ST = { more: false };
 
   function valid(d) { return d && d.v === 1 && d.price && d.price.months && d.scen && d.signals && d.head; }
   function newer(a, b) { return !b || (a && String(a.generatedAt) > String(b.generatedAt)); }
@@ -52,9 +54,12 @@
   function stCls(s) { return s === '켜짐' ? 'on' : (s === '압력' || s === '둔화') ? 'mid' : 'off'; }
   function stTxt(s) { return s === '아직 아님' ? '아직' : s; }
 
+  function addM(s0, k) { var n = (+s0.slice(0, 4)) * 12 + (+s0.slice(5, 7)) - 1 + k, y = Math.floor(n / 12), m = n % 12 + 1; return y + '-' + (m < 10 ? '0' : '') + m; }
+  function cyc() { var M = root.MemoryPage && root.MemoryPage.data(); return M ? M.items.dram : null; }
+
   // ------------------------------------------------------------------ 하위 화면
   function pageSum(H, mounts) {
-    var d = DATA, h = d.head, sc = d.scen, out = [];
+    var d = DATA, h = d.head, sc = d.scen, out = [], C = cyc();
     var rank = function (s) { return s.status === '켜짐' ? 0 : (s.status === '압력' || s.status === '둔화') ? 1 : 2; };
     var meter = d.signals.slice().sort(function (a, b) { return rank(a) - rank(b); }).map(function (s) { return '<i class="' + (s.status === '켜짐' ? 'on' : (s.status === '압력' || s.status === '둔화') ? 'mid' : '') + '"></i>'; }).join('');
     var take = '이주완 박사는 메모리 값이 수요보다 <b>공급(감산)</b>으로 정해진다고 봐요. 지금 한국 반도체 가동률은 정상보다 <b class="num">' + h.cut.toFixed(1) + '%</b> 낮고' +
@@ -65,7 +70,7 @@
       '<div class="smmeter" aria-label="하락 신호 ' + h.lit + '개">' + meter + '</div><p class="smtake">' + take + '</p>'));
     out.push(H.card('<div class="kpis four smkpis">' +
       '<div class="kpi"><div class="v">−' + h.cut.toFixed(1) + '<span class="pc">%</span></div><div class="l">가동률 (정상 대비)</div></div>' +
-      '<div class="kpi"><div class="v">' + h.curUpM + '<span class="pc">개월</span></div><div class="l">이번 상승기 ' + sp(h.curUpPct, 0) + '<br>과거 최장 ' + h.maxUpM + '개월</div></div>' +
+      '<div class="kpi"><div class="v">' + (C ? C.current.monthsSinceTp : h.curUpM) + '<span class="pc">개월</span></div><div class="l">이번 상승기 ' + sp(C ? C.current.sinceTpPct : h.curUpPct, 0) + '<br>과거 최장 ' + (C ? C.stats.upMonthsMax : h.maxUpM) + '개월</div></div>' +
       '<div class="kpi"><div class="v">' + sp(sc.A12, 0).replace('%', '<span class="pc">%</span>') + '</div><div class="l">박사 시나리오 1년 뒤<br>(' + ym(sc.peakMonth) + ' 정점 기준)</div></div>' +
       '<div class="kpi"><div class="v">' + sp(sc.D12, 0).replace('%', '<span class="pc">%</span>') + '</div><div class="l">공급 모델 1년 뒤<br>범위 ' + sp(sc.D12lo, 0) + '~' + sp(sc.D12hi, 0) + '</div></div>' +
       '</div>', 'kpicard'));
@@ -78,10 +83,17 @@
       '<p class="note">A는 ' + (sc.falling ? ym(sc.peakMonth) + ' 실제 최고점' : ym(sc.peakMonth) + (sc.estNext ? '(그달 고정거래가 ' + sp(sc.estNext.momPct) + '로 추정)' : '') + '을 정점으로 두고') +
       ' 2001년 이후 과거 정점 뒤 흐름을 붙였어요. B는 감산이 풀려 2022년 7~8월 값(' + Math.round(sc.level2022) + ')까지 30개월에 걸쳐 내려가는 길이에요. 실제가 어느 선을 따라가는지 보시면 돼요.</p>'));
     mounts.push(function () { H.Ch.semiPrice(H.$('c-smprice'), { months: am.slice(i0), actual: d.price.dram.slice(i0), scen: { months: sc.months, A: sc.A, Alo: sc.Alo, Ahi: sc.Ahi, B: sc.B, C: sc.C, D: sc.D } }); });
-    out.push(H.card(H.head('박사가 말한 하락 신호', '켜짐: 하락 쪽 신호 · 압력·둔화: 기울기 시작 · 아직: 신호 없음') + '<ul class="smsig">' + d.signals.map(function (s) {
+    if (C && C.current.peakR3Month && !sc.falling && (C.phase.code === 'late' || C.phase.code === 'up')) {
+      var st = C.stats, pkm = C.current.peakR3Month;
+      out.push(H.card('<div class="sgbox" style="margin-top:0"><b>사이클 모델로 본 꼭대기 시기</b><p>오르는 속도는 ' + esc(ym(pkm)) + '에 가장 빨랐어요. 과거엔 그 뒤 가격 꼭대기까지 중간값 ' + st.lagMedian + '개월(' + st.lagMin + '~' + st.lagMax + '개월) 걸렸어요. ' +
+        '그대로라면 <b>' + esc(ym(addM(pkm, st.lagMedian))) + '쯤</b>이라, 박사가 가정한 ' + esc(ym(sc.peakMonth)) + '보다 ' + (addM(pkm, st.lagMedian) > sc.peakMonth ? '늦어요' : addM(pkm, st.lagMedian) < sc.peakMonth ? '빨라요' : '같아요') + '.</p></div>', 'flat'));
+    }
+    out.push(H.card(H.head('박사가 말한 하락 신호', '켜짐: 하락 쪽 신호 · 압력·둔화: 기울기 시작 · 아직: 신호 없음') + '<ul class="smsig">' + d.signals.slice().sort(function (a, b) { return rank(a) - rank(b); }).map(function (s) {
       return '<li><div class="t"><b>' + esc(s.name) + '</b><span class="smst ' + stCls(s.status) + '">' + esc(stTxt(s.status)) + '</span></div><p>' + esc(s.reading) + '</p>' +
         '<small>' + (s.auto ? '자동 갱신 · ' : '') + esc(ymd(s.asOf)) + ' 기준' + (s.source ? ' · ' + esc(s.source) : '') + '</small></li>';
     }).join('') + '</ul>'));
+    out.push('<button type="button" class="card moreb" data-act="smMore" aria-expanded="' + ST.more + '"><b>' + (ST.more ? '공급·환율 자세히 접기' : '공급·환율 자세히 보기') + '</b><small>생산능력·가동률 · 수출 물량 · 환율 · 모델 성적 · 사이클 길이</small></button>');
+    if (ST.more) out.push(pageSupply(H, mounts));
     return out.join('');
   }
   function pageSupply(H, mounts) {
@@ -109,12 +121,14 @@
       '<tr><td>오를지 내릴지 맞힌 비율</td><td class="num">' + m.hit + '%</td></tr>' +
       '<tr><td>6개월 앞 예측</td><td class="num">' + (m.gain6 > 0 ? '조금 나음' : '나아지지 않음') + '</td></tr></tbody></table>' +
       '<p class="note">생산능력이 많이 늘면 1년 뒤 값이 내리는 경향은 데이터로 확인돼요. 하지만 맞히는 폭이 커서 숫자 하나보다 방향 참고용이에요.</p>'));
-    out.push(H.card(H.head('사이클 길이', '2012년 이후 D램 가격 기준') +
-      '<table class="smtab"><tbody>' +
-      '<tr><td>오르는 기간 평균 (박사: 1.5년)</td><td class="num">' + h.upRecent.toFixed(1) + '개월</td></tr>' +
-      '<tr><td>내리는 기간 평균 (박사: 2.5년)</td><td class="num">' + h.downRecent.toFixed(1) + '개월</td></tr>' +
-      '<tr><td>하락기 가격 하락폭 (2001년 이후 중간값)</td><td class="num">' + sp(h.downFall, 0) + '</td></tr>' +
-      '<tr><td>이번 상승기</td><td class="num">' + h.curUpM + '개월 · ' + sp(h.curUpPct, 0) + '</td></tr></tbody></table>'));
+    var C = cyc();
+    out.push(H.card(H.head('사이클 길이', '박사의 말과 두 가지 계산 비교') +
+      '<table class="smtab"><thead><tr><th></th><th>박사</th><th>이주완 모델<small>2012년 이후 평균</small></th>' + (C ? '<th>사이클 모델<small>1996년 이후 중간값</small></th>' : '') + '</tr></thead><tbody>' +
+      '<tr><td>오르는 기간</td><td class="num">18개월</td><td class="num">' + h.upRecent.toFixed(0) + '개월</td>' + (C ? '<td class="num">' + C.stats.upMonthsMedian + '개월</td>' : '') + '</tr>' +
+      '<tr><td>내리는 기간</td><td class="num">30개월</td><td class="num">' + h.downRecent.toFixed(0) + '개월</td>' + (C ? '<td class="num">' + C.stats.downMonthsMedian + '개월</td>' : '') + '</tr>' +
+      '<tr><td>내릴 때 하락폭</td><td class="num">–</td><td class="num">' + sp(h.downFall, 0) + '</td>' + (C ? '<td class="num">' + sp(C.stats.downChangeMedianPct, 0) + '</td>' : '') + '</tr>' +
+      '<tr><td>이번 상승기</td><td class="num">–</td><td class="num">' + h.curUpM + '개월</td>' + (C ? '<td class="num">' + C.current.monthsSinceTp + '개월</td>' : '') + '</tr></tbody></table>' +
+      '<p class="note">두 모델은 꼭대기·바닥을 찾는 기준이 조금 달라 숫자가 조금씩 달라요. 어느 쪽으로 봐도 이번 상승기는 과거보다 훨씬 길어요.</p>'));
     return out.join('');
   }
 
@@ -126,7 +140,7 @@
       d.sources.map(esc).join('<br>') + '<br>한 전문가의 주장을 데이터로 점검한 참고 자료 · 투자 권유 아님</p>';
   }
 
-  // jw.js가 부른다. sub: 'model' | 'supply'. 자료가 아직 없으면 불러오고 안내 카드를 돌려준다.
+  // jw.js가 부른다. sub: 'model'(예전 'supply'는 자세히를 편 상태로). 자료가 아직 없으면 불러오고 안내 카드를 돌려준다.
   function view(H, sub, mounts) {
     if (!DATA) {
       if (failed) return H.card('<div class="empty"><h2>반도체 모델 자료를 열지 못했어요</h2><p>인터넷 연결을 확인하고 다시 열어 주세요</p></div>');
@@ -134,13 +148,15 @@
       return H.card('<div class="empty"><h2>반도체 모델 자료를 여는 중</h2></div>');
     }
     if (!loading && FROM !== 'remote' && !Dt.demo && (!GOT || Date.now() - GOT > MAX_AGE) && Date.now() - tried > 10 * 60e3) load(false).then(H.keep);
-    return (sub === 'supply' ? pageSupply(H, mounts) : pageSum(H, mounts)) + foot();
+    if (sub === 'supply') ST.more = true;
+    return pageSum(H, mounts) + foot();
   }
   function onAct(act, d, H) {
     switch (act) {
       case 'smReload': if (Dt.demo) return true; load(true).then(H.keep); H.keep(); return true;
+      case 'smMore': ST.more = !ST.more; H.keep(); return true;
     }
     return false;
   }
-  root.SemiPage = { view: view, onAct: onAct, load: load };
+  root.SemiPage = { data: function () { return DATA; }, view: view, onAct: onAct, load: load, setState: function (o) { for (var k in o) ST[k] = o[k]; } };
 })(window);

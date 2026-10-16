@@ -355,14 +355,25 @@ section('이주완 탭 · 사이클 자료 (메모리 가격 사이클)');
   eq('묶인 memory.json = 이력으로 다시 계산한 값', [M.latest.month, M.items.dram.current.r3Pct, M.items.nand.current.r3Pct], [H0.rows[H0.rows.length - 1].m, A.current.r3Pct, B.current.r3Pct]);
   ok('원격 주소는 semi-data 가지', /raw\.githubusercontent\.com\/hj5952009\/mom-market-app\/semi-data\/memory\.json/.test(fs.readFileSync(path.join(W, 'js/memory.js'), 'utf8')));
   ok('index.html에 memory.js', /js\/memory\.js/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')));
-  ok('이주완 탭에 사이클 하위 화면', /\['cycle', '사이클'\]/.test(fs.readFileSync(path.join(W, 'js/jw.js'), 'utf8')));
+  ok('반도체 탭 하위 화면 4개(한눈에·사이클 모델·이주완 모델·주장 점검)', /\['hub', '한눈에'\], \['cycle', '사이클 모델'\], \['model', '이주완 모델'\], \['claims', '주장 점검'\]/.test(fs.readFileSync(path.join(W, 'js/jw.js'), 'utf8')));
+  // 사이클 모델 확률·통계청 공급 점검 (tools/memory/cycle_extra.py가 더함)
+  const PB = M.prob, KO = M.kosis;
+  ok('확률 자료 모양', PB && /^\d{4}-\d{2}$/.test(PB.month) && PB.items.dram.p > 0 && PB.items.dram.p < 1 && PB.items.nand.p > 0 && PB.hist.length > 200);
+  ok('확률 월 = 가격 최신 월', PB.month === M.latest.month);
+  ok('확률 검증 숫자', PB.metrics.n > 400 && PB.metrics.auc > 0.5 && PB.metrics.brier <= PB.metrics.brierClim + 0.01);
+  ok('확률 기여 변수 4개, 방향 표시', PB.items.dram.drivers.length === 4 && PB.items.dram.drivers.every(x => ['up', 'down'].includes(x.dir) && x.name));
+  if (M.latest.month === '2026-08') eq('2026-08 확률 = PC의 사이클 모델 v1 결과(model_probability_v2.csv)', [PB.items.dram.p, PB.items.nand.p, PB.metrics.auc, PB.metrics.brier], [0.677, 0.713, 0.602, 0.257]);
+  ok('재고/출하 자료 모양', KO && KO.ratio > 0 && KO.ratioAvg > 0 && KO.series.length > 100 && /^\d{4}-\d{2}$/.test(KO.month));
+  if (KO.month === '2026-08') eq('2026-08 재고/출하 = 검증 보고서 값', [KO.ratio, KO.ratioAvg, KO.ratioMin, KO.ratioMinMonth], [0.51, 1.28, 0.45, '2025-12']);
+  ok('자료 작업이 확률·재고를 더함', /cycle_extra\.py/.test(fs.readFileSync(path.join(__dirname, '../.github/workflows/semi-data.yml'), 'utf8')));
+  ok('index.html에 semihub.js', /js\/semihub\.js/.test(fs.readFileSync(path.join(W, 'index.html'), 'utf8')));
   ok('자료 작업이 memory.json도 올림', /build-memory\.js/.test(fs.readFileSync(path.join(__dirname, '../.github/workflows/semi-data.yml'), 'utf8')));
 }
 
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'jw.js', 'memory.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'jw.js', 'memory.js', 'semi.js', 'semihub.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
@@ -382,7 +393,7 @@ section('이주완 탭 모델 자료 (www/data/semi.json)');
   eq('켜진 신호 수 = head.lit', sm.signals.filter(x => x.status !== '아직 아님').length, sm.head.lit);
   ok('기준월 형식', /^\d{4}-\d{2}$/.test(sm.asOf.price) && /^\d{4}-\d{2}$/.test(sm.asOf.supply));
 }
-ok('versionName 2.6.0', /versionName "2\.6\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.7.0', /versionName "2\.7\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

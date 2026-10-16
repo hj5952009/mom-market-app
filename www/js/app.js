@@ -1,8 +1,9 @@
-/* 시장 나침반 v2 — 화면. 탭 3개(예측·기록·정보), 숫자와 그래프 위주, 문장은 카드당 한 줄. */
+/* 시장 나침반 v2 — 화면. 아래 탭 5개(예측·성적·반도체·성상현·정보), 숫자와 그래프 위주, 문장은 카드당 한 줄.
+ * 2.7.0: 기록+달력을 '성적' 탭 하나로, 이주완 탭을 '반도체' 탭(한눈에·사이클 모델·이주완 모델·주장 점검)으로 정리. 예측 탭은 맨 위 한 줄 요약 + 세부 그래프 접기. */
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.6.0';
+  var APP_VERSION = '2.7.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -10,7 +11,7 @@
     tab: 'predict', payload: null, loading: null, error: null, period: '3m', scroll: {},
     settings: Object.assign({ notif: { on: true, time: '08:40' }, scale: 1 }, LS.get('settings2', {})),
     sysScale: 1, update: null, build: null, lastBack: 0,
-    hl: {}, cal: { month: null, sel: null, allMonths: false }
+    hl: {}, cal: { month: null, sel: null, allMonths: false }, score: 'cal', predMore: false
   };
 
   var I = {
@@ -21,7 +22,7 @@
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
     sung: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
-    jw: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 9.5h5v5h-5z"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3"/></svg>',
+    semi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 9.5h5v5h-5z"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
   };
 
@@ -78,8 +79,12 @@
     setBar(U.fmtTitleDate(st.target) + ' 코스피 마감 예상', chip(st.status, st.label), true);
 
     var R = r.ranges, dPct = U.pctOf(r.center, r.baseClose), out = [], mounts = [];
-    // 1) 핵심 숫자
-    out.push(card('<div class="kpis">' +
+    // 1) 핵심 숫자 (맨 위 한 줄 요약 + 숫자 3개)
+    var lean = r.pUp >= 0.6 ? '오름 쪽으로 기울었어요' : r.pUp <= 0.4 ? '내림 쪽으로 기울었어요' : '오를지 내릴지 반반에 가까워요';
+    var r80 = R['0.8'];
+    out.push(card('<p class="ptake"><b>' + esc(dayWord) + ' 코스피는 ' + U.fmt10(r.center) + ' 근처</b>(' + esc(baseLabel) + ' 대비 ' + U.signPct(dPct) + ')로 봐요. ' + esc(lean) +
+      ' 열에 여덟은 <span class="num nw">' + U.fmt10(r80[0]) + '~' + U.fmt10(r80[1]) + '</span> 사이에서 끝났어요.</p>' +
+      '<div class="kpis">' +
       '<div class="kpi"><div class="v num">' + U.fmt10(r.center) + '</div><div class="l">중심값</div>' +
       '<div class="d"><span class="nw ' + (dPct >= 0 ? 'up-t' : 'down-t') + '">' + (dPct >= 0 ? '▲ ' : '▼ ') + U.signPct(dPct) + '</span> <span class="nw" style="color:var(--muted);font-weight:400">' + esc(baseLabel) + ' 대비</span></div></div>' +
       '<div class="kpi"><div class="v">' + Math.round(r.pUp * 100) + '<span class="pc">%</span></div><div class="l">오를 확률</div></div>' +
@@ -92,6 +97,8 @@
       legend([['ln', '', '실제 종가'], ['sw', '--band-1', '50%'], ['sw', '--band-2', '80%'], ['sw', '--band-4', '95% 범위'], ['ln', 'dash', '중심 예상']])));
     var hist = (r.kospiSeries || []).slice(-30);
     mounts.push(function () { Ch.fan($('c-fan'), { hist: hist, base: r.baseClose, center: r.center, ranges: R, target: st.target }); });
+    // 3~5) 확률 그래프 3개는 접어 둔다
+    var detailAt = out.length;
     // 3) 분포 곡선
     var dens = Cp.densityFromQuantiles(Cp.quantileKnots(r));
     out.push(card(head(dayWord + ' 종가의 확률 분포', null) +
@@ -107,6 +114,7 @@
     out.push(card(head('확률 범위', '확률이 높을수록 범위가 넓어져요') + chartBox('c-ladder') +
       legend([['dot', '--ink', '중심값'], ['ln', 'dash', baseLabel]])));
     mounts.push(function () { Ch.ladder($('c-ladder'), { ranges: R, base: r.baseClose, center: r.center, baseWord: baseLabel }); });
+    var details = out.splice(detailAt, 3), detailMounts = mounts.splice(mounts.length - 3, 3);
     // 6) 시나리오 또는 간밤 변화
     if (r.mode === 'overnight' && r.overnight && r.overnight.movesPct) {
       var mv = r.overnight.movesPct;
@@ -122,7 +130,10 @@
         legend([['sw', '--band-2', '80%'], ['sw', '--band-4', '95% 범위'], ['dot', '--ink', '중심'], ['ln', 'dash', baseLabel]])));
       mounts.push(function () { Ch.scenarios($('c-scen'), { scenarios: r.scenarios, base: r.baseClose }); });
     }
+    out.push('<button type="button" class="card moreb" data-act="predMore" aria-expanded="' + S.predMore + '"><b>' + (S.predMore ? '확률 그래프 접기' : '확률 그래프 더 보기') + '</b><small>종가 확률 분포 · 오를 확률 막대 · 확률 범위 사다리</small></button>');
+    if (S.predMore) { out = out.concat(details); mounts = mounts.concat(detailMounts); }
     out.push(freshRow(P, now));
+    if (window.SemiHub) out.push(window.SemiHub.miniRow());
     out.push('<p class="foot">통계적 참고용 · 투자 권유 아님<br>데이터 Yahoo Finance · ' + esc(U.fmtWhen(P.computedAt, now)) + ' 계산</p>');
     return { html: out.join(''), mounts: mounts };
   }
@@ -180,9 +191,20 @@
   }
 
   // ------------------------------------------------------------------ 기록 탭
+  // ------------------------------------------------------------------ 성적 탭 (달력 + 통계)
+  function scoreNav() {
+    return '<div class="seg sgnav" role="group" aria-label="성적 화면">' + [['cal', '달력'], ['stat', '통계']].map(function (x) {
+      return '<button type="button" data-act="score" data-s="' + x[0] + '" aria-pressed="' + (S.score === x[0]) + '">' + x[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function pageScore() {
+    var pg = S.score === 'stat' ? pageRecord() : pageCal();
+    if (S.payload) pg.html = scoreNav() + pg.html;
+    return pg;
+  }
   function pageRecord() {
     var P = S.payload;
-    setBar('모델 성적', P ? '<span class="chip time">' + esc(recordSpan(P.out.result)) + '</span>' : '', false);
+    setBar('예측 성적', P ? '<span class="chip time">' + esc(recordSpan(P.out.result)) + '</span>' : '', false);
     if (!P) return { html: emptyState() };
     var r = P.out.result, st = r.stats, sh = st.shown || st, out = [], mounts = [];
     out.push(card('<div class="kpis four">' + [
@@ -314,7 +336,7 @@
   }
   function pageCal() {
     var P = S.payload;
-    setBar('예측 달력', '', false);
+    setBar('예측 성적', P ? '<span class="chip time">' + esc(recordSpan(P.out.result)) + '</span>' : '', false);
     if (!P) return { html: emptyState() };
     var c = calCtx(), out = [], mounts = [];
     var mm = c.cd.months.filter(function (m) { return m.ym === c.month; })[0];
@@ -383,7 +405,7 @@
     out.push(card(head('앱', null) +
       '<div class="row"><div class="rl">새 버전' + (u && u.newer ? '<small>' + esc(u.tag) + '</small>' : u && u.ok === false && !u.demo ? '<small>확인하지 못했어요</small>' : '') + '</div>' + upd + '</div>' +
       '<div class="row"><div class="rl">앱 버전</div><span class="rv num">' + esc(APP_VERSION + (S.build && S.build.build ? ' (빌드 ' + S.build.build + ')' : '')) + '</span></div>' +
-      '<div class="row"><div class="rl">데이터 출처</div><span class="rv">Yahoo Finance</span></div>'));
+      '<div class="row"><div class="rl">데이터 출처<small>반도체: 한국은행 ECOS · 통계청 KOSIS</small></div><span class="rv">Yahoo Finance</span></div>'));
     return { html: out.join('') };
   }
 
@@ -396,7 +418,8 @@
   };
   function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
   function pageJw() { return window.JwPage ? window.JwPage.page(H) : { html: '' }; }
-  var PAGES = { predict: pagePredict, record: pageRecord, cal: pageCal, sung: pageSung, jw: pageJw, info: pageInfo };
+  var PAGES = { predict: pagePredict, record: pageScore, semi: pageJw, sung: pageSung, info: pageInfo };
+  var TAB_ALIAS = { cal: ['record', 'cal'], jw: ['semi'] };   // 예전 탭 이름(데모 주소·알림)
   function render() {
     Ch.reset();
     var pg = PAGES[S.tab]();
@@ -522,6 +545,8 @@
       case 'calm': if (S.payload) { var cc = calCtx(); S.cal.month = ymAdd(cc.month, +d.n); } keepScroll(); break;
       case 'calgo': S.cal.month = d.ym; S.cal.sel = null; render(); window.scrollTo(0, 0); break;
       case 'calall': S.cal.allMonths = !S.cal.allMonths; keepScroll(); break;
+      case 'score': S.score = d.s === 'stat' ? 'stat' : 'cal'; render(); window.scrollTo(0, 0); break;
+      case 'predMore': S.predMore = !S.predMore; keepScroll(); break;
     }
   });
   document.addEventListener('input', function (e) {
@@ -548,19 +573,26 @@
     var qs = D.params;
     if (qs.get('scale')) S.sysScale = +qs.get('scale');
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '기록'], ['cal', '달력'], ['sung', '성상현'], ['jw', '이주완'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '성적'], ['semi', '반도체'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
     Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
       if (a[0] && !qs.get('scale')) { S.sysScale = a[0]; applyScale(); }
       S.build = a[1]; S.payload = a[2] || null; S.hl = a[3] || {};
       if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
+      if (qs.get('sgmore') && window.SungPage) window.SungPage.setState({ more: qs.get('sgmore').split(',').reduce(function (o, k) { o[k] = true; return o; }, {}) });
       if (qs.get('cyc') && window.MemoryPage) window.MemoryPage.setState({ item: qs.get('cyc') });
       if (qs.get('jw') && window.JwPage) window.JwPage.setState({ sub: qs.get('jw'), open: qs.get('jwopen') ? (function (o) { o[qs.get('jwopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
-      var tab = qs.get('tab'); if (tab && PAGES[tab]) S.tab = tab;
+      if (qs.get('predmore') === '1') S.predMore = true;
+      var tab = qs.get('tab');
+      if (tab === 'record') S.score = 'stat';
+      if (TAB_ALIAS[tab]) { if (TAB_ALIAS[tab][1]) S.score = TAB_ALIAS[tab][1]; tab = TAB_ALIAS[tab][0]; }
+      if (qs.get('score')) S.score = qs.get('score') === 'stat' ? 'stat' : 'cal';
+      if (tab && PAGES[tab]) S.tab = tab;
       if (/^(1m|3m|all)$/.test(qs.get('period') || '')) S.period = qs.get('period');
       render();
+      if (window.JwPage) window.JwPage.preload(H);   // 반도체 자료(예측 탭 한 줄에도 씀)
       var nt = LS.get('notice2', null);
       if (D.demo ? qs.get('notice') === '1' : !(nt && nt.accepted && nt.version === NOTICE_VERSION)) showNotice();
       if (!D.demo) {

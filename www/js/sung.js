@@ -7,7 +7,7 @@
   var DATA = null, loading = null, failed = false;
   var SHORT = ['연준', '금리·채권', '물가', '재정·부채', '달러·환율', 'AI·반도체', '빅테크', '유가·원자재', '고용·경기', '중국·신흥국', '한국 증시', '자산배분', '투자 마인드', '금·대체자산', '신용·유동성', '지정학·정책'];
   var MODEL_NAMES = { '^TNX': '미국 10년물 금리', '^SOX': 'SOX(미국 반도체)', MU: '마이크론', '^IXIC': '나스닥', 'KRW=X': '원/달러 환율', EEM: 'EEM(신흥국)', HYG: 'HYG(하이일드)', '^KS11': '코스피', EWY: 'EWY(한국 ETF)', '^VIX': 'VIX(변동성)' };
-  var ST = { sub: 'sum', theme: 5, q: '', cat: -1, kind: -1, th: -1, sort: 'new', fav: false, limit: 30, open: {}, termQ: '' };
+  var ST = { sub: 'sum', theme: 5, q: '', cat: -1, kind: -1, th: -1, sort: 'new', fav: false, limit: 30, open: {}, termQ: '', more: {} };
   var FAV_KEY = 'mc.sungFav';
 
   function favs() { try { return JSON.parse(root.localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { return []; } }
@@ -74,16 +74,31 @@
       return '<li><div><b>' + esc(w.name) + '</b><small>' + esc(w.why) + '</small></div>' +
         (L ? '<div class="sgv num"><small>' + esc(MODEL_NAMES[w.model] || '') + '</small><b>' + esc(L.v) + '</b><small class="' + (L.up ? 'up-t' : 'down-t') + '">' + esc(L.c) + '</small></div>' : '<div class="sgv"><small>앱 시세에 없음</small></div>') + '</li>';
     }).join('') + '</ul>'));
-    var top = D.themes.map(function (t, i) { return { i: i, n: t.n }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 10);
-    out.push(H.card(H.head('관심 주제의 흐름', '달마다 각 주제를 다룬 글 수 · 진할수록 많이 씀') + H.chartBox('c-sgheat')));
-    mounts.push(function () { H.Ch.heat(H.$('c-sgheat'), { rows: top.map(function (x) { return { name: SHORT[x.i], values: D.themes[x.i].monthly }; }), months: D.months }); });
-    out.push(H.card(H.head('시기별 생각의 흐름', '그때그때 무엇을 걱정하고 기대했는지') + '<ol class="sgtl">' + D.eras.slice().reverse().map(function (e) {
-      return '<li class="t' + (e.tone > 0 ? 'p' : e.tone < 0 ? 'n' : 'z') + '"><div class="sgtl-d num">' + esc(e.from.replace('-', '.')) + ' ~ ' + esc(e.to.replace('-', '.')) + '</div><h3>' + esc(e.title) + '</h3><p>' + esc(e.text) + '</p>' + refs(e.ids) + '</li>';
-    }).join('') + '</ol><div class="legend"><span><i class="dot" style="background:var(--up)"></i>대체로 낙관</span><span><i class="dot" style="background:var(--muted)"></i>중립</span><span><i class="dot" style="background:var(--down)"></i>경계</span></div>'));
-    out.push(H.card(H.head('그가 시장을 읽는 틀', '글 전체에서 되풀이되는 생각 6가지') + D.frame.map(function (f) {
-      return '<div class="sgframe"><h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p>' + refs(f.ids) + '</div>';
-    }).join('')));
-    out.push(H.card(H.head('주요 전망 글', '분기·반기 전망과 시장 진단') + '<ul class="splist">' + D.outlooks.map(function (id) { return postRow(D.byId[id], !!ST.open[id]); }).join('') + '</ul>'));
+    // 2.7.0: 아래 네 덩어리는 접어 둔다(요약 화면을 짧게)
+    var M = ST.more;
+    var mb = function (k, label, sub) { return '<button type="button" class="card moreb" data-act="sgMoreSec" data-k="' + k + '" aria-expanded="' + !!M[k] + '"><b>' + esc(M[k] ? label + ' 접기' : label + ' 보기') + '</b><small>' + esc(sub) + '</small></button>'; };
+    out.push(mb('heat', '관심 주제의 흐름', '달마다 어떤 주제를 많이 썼는지 한 장으로'));
+    if (M.heat) {
+      var top = D.themes.map(function (t, i) { return { i: i, n: t.n }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 10);
+      out.push(H.card(H.head('관심 주제의 흐름', '달마다 각 주제를 다룬 글 수 · 진할수록 많이 씀') + H.chartBox('c-sgheat')));
+      mounts.push(function () { H.Ch.heat(H.$('c-sgheat'), { rows: top.map(function (x) { return { name: SHORT[x.i], values: D.themes[x.i].monthly }; }), months: D.months }); });
+    }
+    out.push(mb('era', '시기별 생각의 흐름', '그때그때 무엇을 걱정하고 기대했는지 ' + D.eras.length + '개 시기'));
+    if (M.era) {
+      out.push(H.card(H.head('시기별 생각의 흐름', '그때그때 무엇을 걱정하고 기대했는지') + '<ol class="sgtl">' + D.eras.slice().reverse().map(function (e) {
+        return '<li class="t' + (e.tone > 0 ? 'p' : e.tone < 0 ? 'n' : 'z') + '"><div class="sgtl-d num">' + esc(e.from.replace('-', '.')) + ' ~ ' + esc(e.to.replace('-', '.')) + '</div><h3>' + esc(e.title) + '</h3><p>' + esc(e.text) + '</p>' + refs(e.ids) + '</li>';
+      }).join('') + '</ol><div class="legend"><span><i class="dot" style="background:var(--up)"></i>대체로 낙관</span><span><i class="dot" style="background:var(--muted)"></i>중립</span><span><i class="dot" style="background:var(--down)"></i>경계</span></div>'));
+    }
+    out.push(mb('frame', '그가 시장을 읽는 틀', '글 전체에서 되풀이되는 생각 ' + D.frame.length + '가지'));
+    if (M.frame) {
+      out.push(H.card(H.head('그가 시장을 읽는 틀', '글 전체에서 되풀이되는 생각 6가지') + D.frame.map(function (f) {
+        return '<div class="sgframe"><h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p>' + refs(f.ids) + '</div>';
+      }).join('')));
+    }
+    out.push(mb('outl', '주요 전망 글', '분기·반기 전망과 시장 진단 ' + D.outlooks.length + '편'));
+    if (M.outl) {
+      out.push(H.card(H.head('주요 전망 글', '분기·반기 전망과 시장 진단') + '<ul class="splist">' + D.outlooks.map(function (id) { return postRow(D.byId[id], !!ST.open[id]); }).join('') + '</ul>'));
+    }
     return out.join('');
   }
   function pageTheme(H, P, mounts) {
@@ -244,6 +259,7 @@
       case 'sgOpen': H.openUrl(url(d.id)); return true;
       case 'sgFav': var F = favs(), k = F.indexOf(d.id); if (k >= 0) F.splice(k, 1); else F.push(d.id); setFavs(F); H.keep(); return true;
       case 'sgMore': ST.limit += 30; H.keep(); return true;
+      case 'sgMoreSec': ST.more[d.k] = !ST.more[d.k]; H.keep(); return true;
     }
     return false;
   }

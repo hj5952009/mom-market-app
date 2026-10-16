@@ -796,7 +796,8 @@
       var tk = niceTicks(lo - pad, hi + pad, 4), labW = Math.max.apply(null, tk.map(function (t) { return tw(d.fmt(t), F); })) + 8;
       var endW = Math.max.apply(null, Sx.map(function (s) { var v = s.values[n - 1]; return v == null ? 0 : tw(d.fmt(v), F); })) + 8;
       var x0 = labW, x1 = w - endW, ch = Math.round(F * 12), axisH = F * 1.8, h = ch + axisH, s = '';
-      var x = lin(0, n - 1, x0, x1), y = lin(tk[0], tk[tk.length - 1], ch - 4, 4);
+      // 눈금이 값 범위 안쪽에서만 나와도 선이 차트 밖으로 나가지 않게 세로 범위는 값과 눈금을 모두 덮는다
+      var x = lin(0, n - 1, x0, x1), y = lin(Math.min(tk[0], lo - pad), Math.max(tk[tk.length - 1], hi + pad), ch - 4, 4);
       tk.forEach(function (t) { s += L(x0, y(t), x1, y(t), 'c-grid'); s += T(0, y(t) + F * 0.35, d.fmt(t), F, 'c-txt num', 'start'); });
       Sx.forEach(function (sr) {
         var segs = [], cur = [];
