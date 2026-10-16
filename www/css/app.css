@@ -23,7 +23,7 @@
   --sans: system-ui, "Noto Sans KR", "Noto Sans CJK KR", "Apple SD Gothic Neo", sans-serif;
   --numfont: "MC Num", var(--serif);
   --cal-80: rgba(122, 63, 166, .26); --cal-95: rgba(122, 63, 166, .10);
-  --gutter: 16px; --pad: 16px; --radius: 14px; --tabbar: 64px;
+  --gutter: 16px; --pad: 16px; --radius: 14px; --tabbar: 4rem;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -222,13 +222,14 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 /* ---------- 하단 탭 ---------- */
 .tabs{
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--card); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(6, 1fr); padding-bottom: env(safe-area-inset-bottom);
+  display: flex; padding-bottom: env(safe-area-inset-bottom);   /* 탭 개수와 상관없이 같은 폭으로 꽉 채움 */
 }
+.tabs button{ flex: 1 1 0; min-width: 0; }
 .tabs button{
-  min-height: var(--tabbar); border: 0; background: transparent; color: var(--muted); font-size: .875rem; font-weight: 600;
+  min-height: var(--tabbar); border: 0; background: transparent; color: var(--muted); font-size: min(.875rem, 19px); font-weight: 600; white-space: nowrap;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 6px 0;
 }
-.tabs svg{ width: 24px; height: 24px; }
+.tabs svg{ width: min(1.5rem, 30px); height: min(1.5rem, 30px); }
 .tabs button[aria-current="page"]{ color: var(--ink); }
 .tabs button[aria-current="page"] svg{ color: var(--band-1); }
 
@@ -314,7 +315,7 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .ftab{ width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .875rem; }
 .ftab th{ font-size: .8125rem; font-weight: 600; color: var(--muted); text-align: left; padding: 6px 3px; }
 .ftab td{ padding: 8px 3px; border-top: 1px solid var(--line); vertical-align: top; }
-.ftab th:nth-child(3), .ftab td:nth-child(3){ text-align: right; }
+.ftab th:nth-child(2), .ftab td:nth-child(2){ text-align: right; padding-right: 10px; }
 .ftab td small{ display: block; color: var(--muted); font-size: .75rem; }
 .fs{ font-weight: 700; white-space: nowrap; }
 .fs.fresh{ color: #2E9E6A; } .fs.lag1{ color: #B8860B; } .fs.late, .fs.cached{ color: var(--up); }
@@ -537,3 +538,46 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .smtab th small{ display: block; font-weight: 500; }
 .smtab thead + tbody tr:first-child td{ border-top: 1px solid var(--line); }
 @media (max-width: 340px){ .hcols, .hbadges{ grid-template-columns: 1fr; } }
+
+/* ---------- 2.8.0: 큰 글씨 배치 (html.big: 1.35배 이상, html.huge: 1.55배 이상) ----------
+ * 글씨가 커지면 두 칸 배치는 한 칸으로 쌓고, 숫자 칸은 '이름 ··· 숫자' 한 줄로 만들어 세로 길이를 아낀다. */
+.big .kpis, .big .kpis.four{ grid-template-columns: minmax(0, 1fr); }
+.big .kpi + .kpi, .big .kpis.four .kpi:nth-child(n){ border-left: 0; border-top: 1px solid var(--line); }
+.big .kpis .kpi:first-child{ border-top: 0; }
+.big .kpis.four .kpi{ display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: center; padding: 12px var(--pad); }
+.big .kpis.four .kpi .v{ grid-column: 2; grid-row: 1 / span 3; text-align: right; font-size: 1.75rem; }
+.big .kpis.four .kpi .l{ grid-column: 1; grid-row: 1; margin-top: 0; color: var(--ink); font-weight: 600; font-size: .9375rem; }
+.big .kpis.four .kpi .l2, .big .kpis.four .kpi .d{ grid-column: 1; }
+.big .kpi .v{ font-size: 2.25rem; }
+.big .kpi .v.mid{ font-size: 1.875rem; }
+.big .kpi .l br{ display: none; }
+.big .hcols, .big .hbadges{ grid-template-columns: minmax(0, 1fr); }
+.big .jwnav, .big .sgnav{ display: grid; grid-template-columns: 1fr 1fr; }
+.big .jwnav button, .big .sgnav button{ white-space: normal; line-height: 1.3; }
+.big .seg button{ padding: 6px 10px; }
+.big .smphase b{ font-size: 1.75rem; }
+.big .mprob b{ font-size: 2rem; }
+.big .jwtally{ flex-wrap: wrap; }
+.big .jwt{ flex: 1 1 40%; }
+.big .jwbars li{ grid-template-columns: 5.4em 1fr 3em; font-size: .875rem; }
+.big .smtab{ font-size: .875rem; }
+.big .mtab{ font-size: .875rem; }
+.big .note, .big .card .sub{ font-size: .875rem; }
+.big .bar h1{ font-size: 1.125rem; }
+.huge .kpis.four .kpi .v{ font-size: 1.5rem; }
+.huge .legend{ font-size: .8125rem; }
+.chip.time{ white-space: normal; }
+.big .legend span{ white-space: normal; }
+.ftab{ font-size: .8125rem; }
+.ftab th{ font-size: .75rem; }
+.ftab td small{ font-size: .6875rem; }
+.ftab td, .ftab th{ padding-left: 2px; padding-right: 2px; }
+.big .ftab .fs{ white-space: nowrap; }
+.huge .mtab th:nth-child(2), .huge .mtab td:nth-child(2){ display: none; }   /* 아주 큰 글씨: '거래일' 칸 뺌 */
+.big .smtab th small{ font-size: .6875rem; }
+.huge .smtab th{ font-size: .6875rem; }
+.huge .smtab{ font-size: .8125rem; }
+.calnav h2{ white-space: nowrap; }
+.big .mstats{ grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.big .mstats > div{ display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; gap: 10px; }
+.big .mstats span{ margin-top: 0; }

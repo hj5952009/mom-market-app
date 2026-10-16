@@ -393,7 +393,7 @@ section('이주완 탭 모델 자료 (www/data/semi.json)');
   eq('켜진 신호 수 = head.lit', sm.signals.filter(x => x.status !== '아직 아님').length, sm.head.lit);
   ok('기준월 형식', /^\d{4}-\d{2}$/.test(sm.asOf.price) && /^\d{4}-\d{2}$/.test(sm.asOf.supply));
 }
-ok('versionName 2.7.0', /versionName "2\.7\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.8.0', /versionName "2\.8\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

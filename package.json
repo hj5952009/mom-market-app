@@ -1,6 +1,6 @@
 {
   "name": "mom-market-compass",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "private": true,
   "description": "시장 나침반 v2 — 코스피 다음 거래일 범위 예측 (가족용)",
   "license": "UNLICENSED",

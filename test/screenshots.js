@@ -21,10 +21,16 @@ function findChrome() {
 
 const SHOTS = [];
 const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record&score=stat'], ['03_info', 'tab=info'], ['09_cal', 'tab=record&score=cal'], ['11_sung_sum', 'tab=sung'], ['12_semi_hub', 'tab=semi']];
-for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3']) {
+for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3', '1.5', '1.75']) {
+  if (theme === 'dark' && (sc === '1.0' || sc === '1.5')) continue;
   SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
 }
-SHOTS.push(['01_predict_more_light_x1.0', 'tab=predict&predmore=1', { theme: 'light' }]);
+SHOTS.push(['01_predict_more_light_x1.0', 'tab=predict&predmore=1&scale=1.0', { theme: 'light' }]);
+SHOTS.push(['01_predict_more_light_x1.5', 'tab=predict&predmore=1&scale=1.5', { theme: 'light' }]);
+for (const sub of ['cycle', 'model', 'claims']) SHOTS.push([`12_semi_${sub}_light_x1.5`, `tab=semi&jw=${sub}&scale=1.5`, { theme: 'light' }]);
+SHOTS.push(['12_semi_model_more_light_x1.75', 'tab=semi&jw=supply&scale=1.75', { theme: 'light' }]);
+SHOTS.push(['09_cal_day1012_light_x1.75', 'tab=cal&day=2026-10-12&scale=1.75', { theme: 'light' }]);
+SHOTS.push(['11_sung_model_light_x1.5', 'tab=sung&sg=model&scale=1.5', { theme: 'light' }]);
 SHOTS.push(['02_record_period1m_light_x1.0', 'tab=record&score=stat&period=1m', { theme: 'light', viewportOnly: true }]);
 SHOTS.push(['02_record_periodall_dark_x1.3', 'tab=record&score=stat&period=all&scale=1.3', { theme: 'dark' }]);
 SHOTS.push(['04_predict_overnight_light_x1.0', 'tab=predict&scenario=morning&scale=1.0', { theme: 'light' }]);

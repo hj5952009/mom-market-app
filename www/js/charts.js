@@ -93,7 +93,8 @@
 
   // ------------------------------------------------------------------ 바탕 (그리기·툴팁·키보드)
   var mounted = [];
-  function fontPx() { var fs = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; return 14 * fs / 16; }
+  // 차트 글자는 화면 글씨를 따라 커지되 1.4배까지만(더 크면 눈금·이름이 서로 겹쳐 오히려 읽기 어려움)
+  function fontPx() { var fs = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; return 14 * Math.min(1.4, fs / 16); }
   function mount(el, label, build) {
     el._build = build; el._label = label;
     if (mounted.indexOf(el) < 0) mounted.push(el);
@@ -216,9 +217,16 @@
       labs.forEach(function (l) { s += T(xT + 6, l.y, l.s, F, l.c, 'start'); });
       // x 눈금: 처음·가운데·마지막 날 + 예측일
       var ty = h - F * 0.45;
+      // 글씨가 커서 겹치면 가운데 날짜부터 뺀다
+      var tl = [], tR = xT - tw(U.fmtSlash(d.target), F, true) / 2;
       [0, Math.round((n - 1) / 2), n - 1].forEach(function (i, k) {
-        s += T(x(i), ty, U.fmtSlash(hist[i].date), F, 'c-txt', k === 0 ? 'start' : 'middle');
+        var lbl = U.fmtSlash(hist[i].date), w0 = tw(lbl, F), l0 = k === 0 ? x(i) : x(i) - w0 / 2;
+        tl.push({ i: i, k: k, s: lbl, l: l0, r: l0 + w0 });
       });
+      var gapT = F * 0.6, okT = function (a, b) { return !a || !b || b.l - a.r >= gapT; };
+      if (tl[2].r > tR - gapT) tl[2] = null;
+      if (!okT(tl[0], tl[1]) || !okT(tl[1], tl[2]) || (tl[1] && tl[1].r > tR - gapT)) tl[1] = null;
+      tl.forEach(function (o) { if (o) s += T(x(o.i), ty, o.s, F, 'c-txt', o.k === 0 ? 'start' : 'middle'); });
       s += T(xT, ty, U.fmtSlash(d.target), F, 'c-strong', 'middle');
       var mid = (xH + xT) / 2;
       return {
@@ -737,7 +745,7 @@
     function sg(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%'; }
     mount(el, 'D램 가격과 생산·수출 물량, 전년 대비', function (w, F) {
       var labW = tw('−200', F) + 6, x0 = labW, x1 = w, gw = (x1 - x0) / n;
-      var h1 = 132, gap = F * 2.4, h2 = 104, axisH = F * 1.7, top = F * 1.1, h = top + h1 + gap + h2 + axisH, s = '';
+      var h1 = 132, gap = F * 2.4, h2 = 104, axisH = F * 1.7, top = F * 2.1, h = top + h1 + gap + h2 + axisH, s = '';
       var pMin = Math.min(-60, Math.min.apply(null, R.map(function (r) { return r.price; }))), pMax = Math.max.apply(null, R.map(function (r) { return r.price; }).concat([50]));
       var qv = R.map(function (r) { return r.prod; }).concat(R.map(function (r) { return r.vol; }));
       var qMin = Math.min(-10, Math.min.apply(null, qv)), qMax = Math.max(10, Math.max.apply(null, qv));

@@ -3,13 +3,13 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.7.0';
+  var APP_VERSION = '2.8.0';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
   var S = {
     tab: 'predict', payload: null, loading: null, error: null, period: '3m', scroll: {},
-    settings: Object.assign({ notif: { on: true, time: '08:40' }, scale: 1 }, LS.get('settings2', {})),
+    settings: Object.assign({ notif: { on: true, time: '08:40' } }, LS.get('settings2', {})),
     sysScale: 1, update: null, build: null, lastBack: 0,
     hl: {}, cal: { month: null, sel: null, allMonths: false }, score: 'cal', predMore: false
   };
@@ -27,9 +27,17 @@
   };
 
   // ------------------------------------------------------------------ 글씨 배율
+  // 2.8.0: 어머님 눈에 맞춰 기본을 '크게'(1.3배)로. 고르는 값: 보통 1.15 · 크게 1.3 · 아주 크게 1.5 (폰 글꼴 크기와 곱함, 최대 1.75배).
+  // 예전 설정(scale: 1/1.15/1.3)은 무시하고 새 기본값에서 시작한다(text 칸이 없으면 1.3).
+  var TEXT_SIZES = [[1.15, '보통'], [1.3, '크게'], [1.5, '아주 크게']];
+  function textSize() { var t = S.settings.text; return TEXT_SIZES.some(function (o) { return o[0] === t; }) ? t : 1.3; }
   function applyScale() {
-    var sc = Math.min(1.6, S.sysScale * (S.settings.scale || 1));
-    document.documentElement.style.fontSize = (16 * sc) + 'px';
+    var sc = Math.min(1.75, S.sysScale * (S.demoText != null ? S.demoText : textSize()));
+    var root = document.documentElement;
+    root.style.fontSize = (16 * sc) + 'px';
+    // 큰 글씨에서는 두 칸 배치를 한 칸으로 바꾼다(css의 .big/.huge)
+    root.classList.toggle('big', sc >= 1.35);
+    root.classList.toggle('huge', sc >= 1.55);
   }
   function saveSettings() { LS.set('settings2', S.settings); }
   function toast(msg) {
@@ -165,11 +173,11 @@
     var sm = freshSummary(F);
     return '<section class="card" id="fresh">' + head('자료 상태', U.fmtWhen(F.at, now) + ' 확인 · 각 시장의 마지막으로 끝난 장까지 들어왔는지 봐요') +
       '<p class="fsum ' + sm.cls + '"><span class="fdot"></span>' + esc(sm.text) + '</p>' +
-      '<table class="ftab"><thead><tr><th>지표</th><th>마지막 장</th><th>값</th><th>상태</th></tr></thead><tbody>' +
+      '<table class="ftab"><thead><tr><th>지표 · 마지막 장</th><th>값</th><th>상태</th></tr></thead><tbody>' +
       F.items.map(function (x) {
         var v = x.value == null ? '–' : (x.sym === '^TNX' ? x.value.toFixed(2) + '%' : x.value >= 1000 ? U.fmtInt(x.value) : x.value.toFixed(2));
         var note = x.patched.length ? '<small>빈칸 채움</small>' : x.status === 'late' ? '<small>' + U.fmtSlash(x.expected) + ' 없음</small>' : '';
-        return '<tr><td>' + esc(x.name) + '</td><td class="num">' + (x.last ? U.fmtSlash(x.last) + '(' + U.DOW[U.dowOf(x.last)] + ')' : '–') + '</td><td class="num">' + v + '</td>' +
+        return '<tr><td>' + esc(x.name) + '<small class="num">' + (x.last ? U.fmtSlash(x.last) + '(' + U.DOW[U.dowOf(x.last)] + ')' : '–') + '</small></td><td class="num">' + v + '</td>' +
           '<td><span class="fs ' + x.status + '">' + FS_TXT[x.status] + '</span>' + note + '</td></tr>';
       }).join('') + '</tbody></table>' +
       '<p class="note">빈칸 채움: Yahoo가 끝난 장의 종가를 비워 둬서 같은 Yahoo의 공식 마감 값으로 채운 것이에요</p>' +
@@ -392,8 +400,8 @@
       '<button type="button" class="switch" role="switch" aria-checked="' + !!n.on + '" aria-label="평일 아침 알림" data-act="notif"></button></div>' +
       '<div class="row"><div class="rl">알림 시간</div><select id="notifTime" aria-label="알림 시간"' + (n.on ? '' : ' disabled') + '>' +
       times.map(function (t) { return '<option value="' + t + '"' + (t === n.time ? ' selected' : '') + '>' + U.fmtHM(t) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="row stack"><div class="rl">글씨 크기</div><div class="seg" role="group" aria-label="글씨 크기">' + [[1, '보통'], [1.15, '크게'], [1.3, '더 크게']].map(function (o) {
-        return '<button type="button" data-act="scale" data-v="' + o[0] + '" aria-pressed="' + (S.settings.scale === o[0]) + '">' + o[1] + '</button>';
+      '<div class="row stack"><div class="rl">글씨 크기</div><div class="seg" role="group" aria-label="글씨 크기">' + TEXT_SIZES.map(function (o) {
+        return '<button type="button" data-act="scale" data-v="' + o[0] + '" aria-pressed="' + (textSize() === o[0]) + '">' + o[1] + '</button>';
       }).join('') + '</div></div>'));
     var u = S.update, upd;
     if (!u) upd = '<button type="button" class="btn ghost" data-act="update">새 버전 확인</button>';
@@ -533,7 +541,7 @@
         S.settings.notif.on = !S.settings.notif.on; saveSettings();
         if (S.settings.notif.on && N.isNative) N.Noti.request().then(applyNotif); else applyNotif();
         render(); break;
-      case 'scale': S.settings.scale = +d.v; saveSettings(); applyScale(); var y2 = window.scrollY; render(); window.scrollTo(0, y2); break;
+      case 'scale': S.settings.text = +d.v; S.demoText = null; saveSettings(); applyScale(); var y2 = window.scrollY; render(); window.scrollTo(0, y2); break;
       case 'update':
         if (D.demo) { S.update = { demo: true }; render(); break; }
         S.update = { checking: true }; render();
@@ -571,7 +579,7 @@
   // ------------------------------------------------------------------ 시작
   function init() {
     var qs = D.params;
-    if (qs.get('scale')) S.sysScale = +qs.get('scale');
+    if (qs.get('scale')) { S.sysScale = +qs.get('scale'); S.demoText = 1; }   // 데모 주소의 scale은 최종 배율 그대로
     applyScale();
     $('tabs').innerHTML = [['predict', '예측'], ['record', '성적'], ['semi', '반도체'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
