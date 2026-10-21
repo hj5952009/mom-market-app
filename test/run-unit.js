@@ -301,6 +301,18 @@ section('이주완 페이지 자료');
   ok('앱이 쓴 설명에 매수·매도 지시·추천 표현 없음', !ours.some(t => DIRECT.test(t)), ours.filter(t => DIRECT.test(t)));
 }
 
+
+section('유럽 국채 위험 자료');
+{
+  const EU = JSON.parse(fs.readFileSync(path.join(W, 'data/esri.json'), 'utf8'));
+  ok('네 나라 최신값', ['DE', 'FR', 'IT', 'ES'].every(c => EU.countries[c] && typeof EU.countries[c].latest.t100 === 'number' && EU.countries[c].monthly.length > 200));
+  ok('점수는 지수의 로지스틱 변환', ['DE', 'FR', 'IT', 'ES'].every(c => { const a = EU.countries[c].latest; return Math.abs(100 / (1 + Math.exp(-0.048 * (a.t100 - 64))) - a.m100) < 0.6; }));
+  ok('보정 기준: 2011~12 위기 정점 평균이 100', (function () { const it = EU.countries.IT.monthly.filter(r => r[0] >= '2011-08' && r[0] <= '2012-01'), es = EU.countries.ES.monthly.filter(r => r[0] >= '2012-05' && r[0] <= '2012-08');
+    return Math.abs((Math.max(...it.map(r => r[1])) + Math.max(...es.map(r => r[1]))) / 2 - 100) < 0.2; })());
+  ok('외부 검증(SovCISS 순위상관) 0.5 이상', ['DE', 'FR', 'IT', 'ES'].every(c => EU.countries[c].valid.rhoLevel > 0.5), ['DE', 'FR', 'IT', 'ES'].map(c => EU.countries[c].valid.rhoLevel));
+  ok('독일은 늘 위기선 아래', Math.max(...EU.countries.DE.monthly.map(r => r[1])) < 75);
+}
+
 section('예측 달력');
 {
   const cols = fx._historyColumns, H = fx.history.map(r => { const o = {}; cols.forEach((c, i) => { o[c] = r[i]; }); o.in80 = !!o.in80; o.in95 = !!o.in95; return o; });
@@ -373,7 +385,7 @@ section('이주완 탭 · 사이클 자료 (메모리 가격 사이클)');
 // ------------------------------------------------------------------
 section('문구');
 const BANNED = ['사세요', '파세요', '매수', '매도', '추천', '확실', '틀림없이', '무조건', '반드시', '보장', '폭락', '폭등', '급등', '대박', '목표가', '손절', '기회'];
-['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'jw.js', 'memory.js', 'semi.js', 'semihub.js'].forEach(f => {
+['app.js', 'charts.js', 'data.js', 'util.js', 'compute.js', 'freshness.js', 'sung.js', 'sungmodel.js', 'jw.js', 'memory.js', 'semi.js', 'semihub.js', 'europe.js'].forEach(f => {
   const src = fs.readFileSync(path.join(W, 'js', f), 'utf8').split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n');
   const lits = (src.match(/'(?:[^'\\\n]|\\.)*'/g) || []).filter(s => /[가-힣]/.test(s));
   const hits = lits.filter(s => BANNED.some(b => s.indexOf(b) >= 0));
@@ -393,7 +405,7 @@ section('이주완 탭 모델 자료 (www/data/semi.json)');
   eq('켜진 신호 수 = head.lit', sm.signals.filter(x => x.status !== '아직 아님').length, sm.head.lit);
   ok('기준월 형식', /^\d{4}-\d{2}$/.test(sm.asOf.price) && /^\d{4}-\d{2}$/.test(sm.asOf.supply));
 }
-ok('versionName 2.8.0', /versionName "2\.8\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
+ok('versionName 2.9.0', /versionName "2\.9\.0"/.test(fs.readFileSync(path.join(__dirname, '../android/app/build.gradle'), 'utf8')));
 ok('v1 화면 파일 없음', ['reading.js', 'holdings.js', 'content.js', 'context.js', 'overnight.js'].every(f => !fs.existsSync(path.join(W, 'js', f))));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');

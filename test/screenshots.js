@@ -20,7 +20,7 @@ function findChrome() {
 }
 
 const SHOTS = [];
-const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record&score=stat'], ['03_info', 'tab=info'], ['09_cal', 'tab=record&score=cal'], ['11_sung_sum', 'tab=sung'], ['12_semi_hub', 'tab=semi']];
+const TABS = [['01_predict', 'tab=predict'], ['02_record', 'tab=record&score=stat'], ['03_info', 'tab=info'], ['09_cal', 'tab=record&score=cal'], ['11_sung_sum', 'tab=sung'], ['12_semi_hub', 'tab=semi'], ['13_eu_hub', 'tab=eu']];
 for (const [name, q] of TABS) for (const theme of ['light', 'dark']) for (const sc of ['1.0', '1.3', '1.5', '1.75']) {
   if (theme === 'dark' && (sc === '1.0' || sc === '1.5')) continue;
   SHOTS.push([`${name}_${theme}_x${sc}`, `${q}&scale=${sc}`, { theme }]);
@@ -68,6 +68,12 @@ SHOTS.push(['08_tooltip_mmprob_light_x1.0', 'tab=semi&jw=cycle', { theme: 'light
 SHOTS.push(['08_tooltip_mmko_dark_x1.3', 'tab=semi&jw=cycle&scale=1.3', { theme: 'dark', viewportOnly: true, scrollTo: '#c-mmko', tap: ['#c-mmko', 0.8, 0.5] }]);
 SHOTS.push(['08_tooltip_jwpv_light_x1.0', 'tab=semi&jw=claims', { theme: 'light', viewportOnly: true, scrollTo: '#c-jwpv', tap: ['#c-jwpv', 0.9, 0.3] }]);
 SHOTS.push(['08_tooltip_jwpv_dark_x1.3', 'tab=semi&jw=claims&scale=1.3', { theme: 'dark', viewportOnly: true, scrollTo: '#c-jwpv', tap: ['#c-jwpv', 0.3, 0.7] }]);
+SHOTS.push(['13_eu_country_fr_light_x1.0', 'tab=eu&eu=country&euc=FR', { theme: 'light' }]);
+SHOTS.push(['13_eu_country_it_dark_x1.3', 'tab=eu&eu=country&euc=IT&scale=1.3', { theme: 'dark' }]);
+SHOTS.push(['13_eu_daily_light_x1.0', 'tab=eu&eu=daily', { theme: 'light' }]);
+SHOTS.push(['13_eu_model_light_x1.0', 'tab=eu&eu=model', { theme: 'light' }]);
+SHOTS.push(['13_eu_hub_all_light_x1.5', 'tab=eu&euspan=all&scale=1.5', { theme: 'light' }]);
+SHOTS.push(['08_tooltip_euhist_light_x1.0', 'tab=eu&euspan=all', { theme: 'light', viewportOnly: true, tap: ['#c-euhist', 0.45, 0.4] }]);
 SHOTS.push(['10_info_fresh_usmissing_light_x1.0', 'tab=info&scenario=usmissing', { theme: 'light' }]);
 SHOTS.push(['09_cal_day1012_light_x1.0', 'tab=cal&day=2026-10-12', { theme: 'light' }]);
 SHOTS.push(['09_cal_pending_light_x1.0', 'tab=cal&day=2026-10-14', { theme: 'light', viewportOnly: true }]);

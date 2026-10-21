@@ -1052,7 +1052,78 @@
     });
   }
 
+  /* 유럽 국채 위험 지수 흐름: 여러 나라 선, 고른 나라만 굵게(나머지는 연한 회색), 위험 구간 띠와 100 위기선.
+   * d: {months, series:[{c, name, values}], focus} */
+  function esriHist(el, d) {
+    var M = d.months, n = M.length, Sx = d.series;
+    mount(el, '유럽 국채 위험 지수 흐름', function (w, F) {
+      var vals = []; Sx.forEach(function (s) { s.values.forEach(function (v) { if (v != null) vals.push(v); }); });
+      var hi = Math.max(110, Math.max.apply(null, vals) * 1.05);
+      var tk = [0, 25, 50, 75, 100].concat(hi > 130 ? [125] : []), labW = tw('100', F) + 8;
+      var ends = Sx.map(function (s) { var v = s.values[n - 1]; return v == null ? null : { s: s, v: v, t: s.name + ' ' + Math.round(v) }; }).filter(Boolean);
+      var endW = Math.max.apply(null, ends.map(function (e) { return tw(e.t, F, true); }).concat([0])) + 10;
+      var x0 = labW, x1 = w - endW, ch = Math.round(F * 13), axisH = F * 1.8, h = ch + axisH, sv = '';
+      var x = lin(0, Math.max(1, n - 1), x0, x1), y = lin(0, hi, ch - 4, 4);
+      [[50, 75, 'euz-warn'], [75, 100, 'euz-high'], [100, hi, 'euz-crit']].forEach(function (z) {
+        sv += '<rect x="' + n1(x0) + '" y="' + n1(y(z[1])) + '" width="' + n1(x1 - x0) + '" height="' + n1(y(z[0]) - y(z[1])) + '" class="' + z[2] + '"/>';
+      });
+      tk.forEach(function (t) { sv += L(x0, y(t), x1, y(t), t === 100 ? 'euz-line' : 'c-grid') + T(0, y(t) + F * 0.35, String(t), F, 'c-txt num', 'start'); });
+      var order = Sx.slice().sort(function (a, b) { return (a.c === d.focus) - (b.c === d.focus); });
+      order.forEach(function (sr) {
+        var segs = [], cur = [];
+        sr.values.forEach(function (v, j) { if (v == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push([x(j), y(v)]); });
+        if (cur.length) segs.push(cur);
+        segs.forEach(function (sg) { sv += P(poly(sg), sr.c === d.focus ? 'eu-focus' : 'eu-other'); });
+      });
+      var lab = ends.map(function (e) { return { y: y(e.v) + F * 0.35, e: e }; });
+      spread(lab, F * 1.2, F, ch);
+      lab.forEach(function (o) { sv += T(x1 + 6, o.y, o.e.t, F, o.e.s.c === d.focus ? 'c-strong num' : 'c-txt num', 'start'); });
+      var lastR = -1e9, yw = tw('2026', F), step = n > 180 ? 5 : n > 60 ? 2 : 1;
+      M.forEach(function (m, j) {
+        if (m.slice(5) !== '01' || (+m.slice(0, 4)) % step) return;
+        var xx = x(j); if (xx - yw / 2 < lastR + 10 || xx + yw / 2 > x1) return;
+        sv += T(xx, h - F * 0.35, m.slice(0, 4), F, 'c-txt num', 'middle'); lastR = xx + yw / 2;
+      });
+      return {
+        h: h, svg: sv, stops: [[x(n - 1), ch / 2]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px))));
+          return { cx: x(j), cy0: 0, cy1: ch, dots: Sx.filter(function (sr) { return sr.c === d.focus && sr.values[j] != null; }).map(function (sr) { return { x: x(j), y: y(sr.values[j]) }; }),
+            title: ymText(M[j]), rows: Sx.map(function (sr) { return { k: sr.c === d.focus ? '--band-1' : '--axis', label: sr.name, value: sr.values[j] == null ? '–' : String(Math.round(sr.values[j])) }; }) };
+        }
+      };
+    });
+  }
+  /* 일별 한 줄 차트(최근 1년). d: {rows:[[날짜, 값]], fmt, label} */
+  function esriDaily(el, d) {
+    var R = d.rows.filter(function (r) { return r[1] != null; }), n = R.length;
+    if (!n) return;
+    mount(el, d.label, function (w, F) {
+      var v = R.map(function (r) { return r[1]; }), lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.05 || 1;
+      var tk = niceTicks(lo - pad, hi + pad, 3), labW = Math.max.apply(null, tk.map(function (t) { return tw(d.fmt(t), F); })) + 8;
+      var x0 = labW, x1 = w - 6, ch = Math.round(F * 6.5), axisH = F * 1.7, h = ch + axisH, s = '';
+      var x = lin(0, n - 1, x0, x1), y = lin(Math.min(tk[0], lo - pad), Math.max(tk[tk.length - 1], hi + pad), ch - 3, 3);
+      tk.forEach(function (t) { s += L(x0, y(t), x1, y(t), 'c-grid') + T(0, y(t) + F * 0.35, d.fmt(t), F, 'c-txt num', 'start'); });
+      s += P(poly(R.map(function (r, j) { return [x(j), y(r[1])]; })), 'c-line') + C(x(n - 1), y(v[n - 1]), 4, 'c-dot');
+      var lastR = -1e9, lw = tw('12월', F);
+      R.forEach(function (r, j) {
+        if (j && r[0].slice(5, 7) === R[j - 1][0].slice(5, 7)) return;
+        var mm = +r[0].slice(5, 7); if (mm % 3 !== 1) return;
+        var xx = x(j); if (xx - lw / 2 < lastR + 8 || xx + lw / 2 > w || xx - lw / 2 < x0 - 4) return;
+        s += T(xx, h - F * 0.35, mm === 1 ? r[0].slice(0, 4) : mm + '월', F, 'c-txt num', 'middle'); lastR = xx + lw / 2;
+      });
+      return {
+        h: h, svg: s, stops: [[x(n - 1), y(v[n - 1])]],
+        probe: function (px) {
+          var j = Math.max(0, Math.min(n - 1, Math.round(x.inv(px))));
+          return { cx: x(j), cy0: 0, cy1: ch, dots: [{ x: x(j), y: y(v[j]) }], title: U.fmtDateLong(R[j][0]), rows: [{ label: d.label, value: d.fmt(v[j]) }] };
+        }
+      };
+    });
+  }
+
   root.Charts = {
+    esriHist: esriHist, esriDaily: esriDaily,
     memLines: memLines, memBars: memBars, cycleBars: cycleBars, eventDots: eventDots,
     semiLines: semiLines, semiPrice: semiPrice, semiBars: semiBars,
     heat: heat, monthBars: monthBars, sungIndex: sungIndex, jwPriceVol: jwPriceVol,

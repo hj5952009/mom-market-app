@@ -581,3 +581,50 @@ select{ min-height: 40px; padding: 4px 8px; border-radius: 10px; border: 1px sol
 .big .mstats{ grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .big .mstats > div{ display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: baseline; gap: 10px; }
 .big .mstats span{ margin-top: 0; }
+
+/* ---------- 유럽 국채 위험 ---------- */
+:root{ --eu-ok: #2E9E6A; --eu-warn: #D9A21B; --eu-high: #E07B2A; --eu-crit: #D23C3C; }
+@media (prefers-color-scheme: dark){ :root{ --eu-ok: #4CC38A; --eu-warn: #E2B53E; --eu-high: #EE8F45; --eu-crit: #E05A5A; } }
+.euhl{ margin-top: 10px; font-weight: 600; }
+.eurow{ display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 14px 0 6px; border-top: 1px solid var(--line); color: var(--ink); }
+.eurow:first-of-type{ margin-top: 10px; }
+.eurow small{ display: block; color: var(--muted); font-size: .8125rem; margin-top: 2px; }
+.eurt{ display: flex; align-items: center; gap: 8px; }
+.eurt b{ font-size: 1.0625rem; }
+.euv{ margin-left: auto; font-family: var(--numfont); font-weight: 700; font-size: 1.75rem; line-height: 1.1; }
+.eupill{ font-size: .8125rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1.5px solid currentColor; }
+.eupill.ok{ color: var(--eu-ok); } .eupill.warn{ color: var(--eu-warn); } .eupill.high{ color: var(--eu-high); } .eupill.crit{ color: var(--eu-crit); }
+.euzb{ position: relative; height: 10px; margin-top: 8px; border-radius: 5px; overflow: visible; background: var(--grid); }
+.euzb .z{ position: absolute; top: 0; height: 100%; left: 0; opacity: .35; }
+.euzb .z.ok{ background: var(--eu-ok); border-radius: 5px 0 0 5px; } .euzb .z.warn{ background: var(--eu-warn); } .euzb .z.high{ background: var(--eu-high); } .euzb .z.crit{ background: var(--eu-crit); border-radius: 0 5px 5px 0; }
+.euzb .mk{ position: absolute; top: -4px; width: 6px; height: 18px; margin-left: -3px; border-radius: 3px; background: var(--ink); box-shadow: 0 0 0 2px var(--card); }
+.euzb .pv{ position: absolute; top: -1px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; border: 2px solid var(--ink-2); background: var(--card); }
+.euzl{ position: relative; height: 1.3em; font-size: .75rem; color: var(--muted); margin-top: 2px; }
+.euzl span{ position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.euzl span:first-child{ transform: none; left: 0; }
+.euzl span:last-child{ transform: translateX(-30%); }
+.sw.euok{ background: var(--eu-ok); opacity: .6; } .sw.euwarn{ background: var(--eu-warn); opacity: .6; } .sw.euhigh{ background: var(--eu-high); opacity: .6; } .sw.eucrit{ background: var(--eu-crit); opacity: .6; }
+.legend .ring.euring{ border-color: var(--ink-2); }
+.legend .ln.euup{ background: var(--up); }
+.euchips{ margin: 4px 0 10px; }
+.euglob{ list-style: none; margin: 8px 0 0; padding: 0; }
+.euglob li{ display: grid; grid-template-columns: minmax(0, 1fr) 72px 30px; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.euglob li:first-child{ border-top: 0; }
+.euglob b{ font-size: .9375rem; } .euglob small{ display: block; color: var(--muted); font-size: .8125rem; }
+.euglob li > span{ text-align: right; font-weight: 700; }
+.eupb{ height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
+.eupb i{ display: block; height: 100%; background: var(--band-1); border-radius: 4px; }
+.eurates{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.eurates div{ background: var(--shade); border-radius: 10px; padding: 8px 10px; }
+.eurates small{ display: block; font-size: .75rem; color: var(--muted); }
+.eurates b{ font-family: var(--numfont); font-size: 1.25rem; font-weight: 700; }
+.eudrow{ padding: 10px 0 4px; border-top: 1px solid var(--line); }
+.eudrow:first-of-type{ border-top: 0; }
+.eudh{ display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.eudh span{ font-weight: 700; } .eudh small{ color: var(--muted); font-size: .8125rem; }
+.euhot{ color: var(--eu-crit); font-weight: 700; }
+.eu-focus{ fill: none; stroke: var(--band-1); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.eu-other{ fill: none; stroke: var(--axis); stroke-width: 1.5; stroke-linejoin: round; }
+.euz-warn{ fill: var(--eu-warn); opacity: .08; } .euz-high{ fill: var(--eu-high); opacity: .10; } .euz-crit{ fill: var(--eu-crit); opacity: .10; }
+.euz-line{ stroke: var(--eu-crit); stroke-width: 1.5; stroke-dasharray: 5 4; }
+@media (max-width: 380px){ .eurates{ grid-template-columns: 1fr 1fr; } }

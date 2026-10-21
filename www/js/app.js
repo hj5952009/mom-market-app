@@ -3,7 +3,7 @@
 (function () {
   'use strict';
   var U = window.MCUtil, D = window.Data, N = D.Native, LS = D.LS, Ch = window.Charts, Cp = window.Compute, esc = U.esc;
-  var APP_VERSION = '2.8.0';
+  var APP_VERSION = '2.9.0 베타';
   var NOTICE_VERSION = 2;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -21,6 +21,7 @@
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14.5h.01M12 14.5h.01M16 14.5h.01" stroke-width="2.6"/></svg>',
     prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
     next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
+    eu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3c2.6 2.6 3.8 5.6 3.8 9s-1.2 6.4-3.8 9c-2.6-2.6-3.8-5.6-3.8-9S9.4 5.6 12 3z"/></svg>',
     sung: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>',
     semi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9.5 9.5h5v5h-5z"/><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h3M2.5 15h3M18.5 9h3M18.5 15h3"/></svg>',
     info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></svg>'
@@ -413,7 +414,7 @@
     out.push(card(head('앱', null) +
       '<div class="row"><div class="rl">새 버전' + (u && u.newer ? '<small>' + esc(u.tag) + '</small>' : u && u.ok === false && !u.demo ? '<small>확인하지 못했어요</small>' : '') + '</div>' + upd + '</div>' +
       '<div class="row"><div class="rl">앱 버전</div><span class="rv num">' + esc(APP_VERSION + (S.build && S.build.build ? ' (빌드 ' + S.build.build + ')' : '')) + '</span></div>' +
-      '<div class="row"><div class="rl">데이터 출처<small>반도체: 한국은행 ECOS · 통계청 KOSIS</small></div><span class="rv">Yahoo Finance</span></div>'));
+      '<div class="row"><div class="rl">데이터 출처<small>반도체: 한국은행 ECOS · 통계청 KOSIS · 유럽: ECB · Eurostat</small></div><span class="rv">Yahoo Finance</span></div>'));
     return { html: out.join('') };
   }
 
@@ -426,7 +427,8 @@
   };
   function pageSung() { return window.SungPage ? window.SungPage.page(H) : { html: '' }; }
   function pageJw() { return window.JwPage ? window.JwPage.page(H) : { html: '' }; }
-  var PAGES = { predict: pagePredict, record: pageScore, semi: pageJw, sung: pageSung, info: pageInfo };
+  function pageEu() { return window.EuropePage ? window.EuropePage.page(H) : { html: '' }; }
+  var PAGES = { predict: pagePredict, record: pageScore, semi: pageJw, eu: pageEu, sung: pageSung, info: pageInfo };
   var TAB_ALIAS = { cal: ['record', 'cal'], jw: ['semi'] };   // 예전 탭 이름(데모 주소·알림)
   function render() {
     Ch.reset();
@@ -532,6 +534,7 @@
     var d = el.dataset;
     if (/^sg/.test(d.act) && window.SungPage && window.SungPage.onAct(d.act, d, H)) return;
     if (/^jw/.test(d.act) && window.JwPage && window.JwPage.onAct(d.act, d, H)) return;
+    if (/^eu/.test(d.act) && window.EuropePage && window.EuropePage.onAct(d.act, d, H)) return;
     if (/^sm/.test(d.act) && window.SemiPage && window.SemiPage.onAct(d.act, d, H)) return;
     switch (d.act) {
       case 'tab': goTab(d.tab); if (d.to && $(d.to)) $(d.to).scrollIntoView({ block: 'start' }); break;
@@ -581,7 +584,7 @@
     var qs = D.params;
     if (qs.get('scale')) { S.sysScale = +qs.get('scale'); S.demoText = 1; }   // 데모 주소의 scale은 최종 배율 그대로
     applyScale();
-    $('tabs').innerHTML = [['predict', '예측'], ['record', '성적'], ['semi', '반도체'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
+    $('tabs').innerHTML = [['predict', '예측'], ['record', '성적'], ['semi', '반도체'], ['eu', '유럽'], ['sung', '성상현'], ['info', '정보']].map(function (t) {
       return '<button type="button" data-act="tab" data-tab="' + t[0] + '">' + I[t[0]] + t[1] + '</button>';
     }).join('');
     Promise.all([N.textZoom(), D.getBuild(), D.loadLast(), D.loadHL()]).then(function (a) {
@@ -590,6 +593,7 @@
       if (qs.get('sg') && window.SungPage) window.SungPage.setState({ sub: qs.get('sg'), theme: +(qs.get('sgt') || 5), open: qs.get('sgopen') ? (function (o) { o[qs.get('sgopen')] = true; return o; })({}) : {} });
       if (qs.get('sgmore') && window.SungPage) window.SungPage.setState({ more: qs.get('sgmore').split(',').reduce(function (o, k) { o[k] = true; return o; }, {}) });
       if (qs.get('cyc') && window.MemoryPage) window.MemoryPage.setState({ item: qs.get('cyc') });
+      if (qs.get('eu') && window.EuropePage) window.EuropePage.setState({ sub: qs.get('eu'), c: qs.get('euc') || 'FR', span: qs.get('euspan') || '10y' });
       if (qs.get('jw') && window.JwPage) window.JwPage.setState({ sub: qs.get('jw'), open: qs.get('jwopen') ? (function (o) { o[qs.get('jwopen')] = true; return o; })({}) : {} });
       if (/^\d{4}-\d{2}-\d{2}$/.test(qs.get('day') || '')) { S.cal.sel = qs.get('day'); S.cal.month = qs.get('day').slice(0, 7); }
       if (qs.get('predmore') === '1') S.predMore = true;
