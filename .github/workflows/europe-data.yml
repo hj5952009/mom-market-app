@@ -1,0 +1,58 @@
+name: Europe sovereign risk data
+
+# 유럽 국채 위험 지수(ESRI v2, tools/esri/esri.js) 자료를 매일 새로 만든다.
+#  - ECB(10년 금리·CISS·SovCISS·환율), Eurostat(부채·재정수지·이자·GDP), Yahoo(VIX·MOVE·미 10년물·브렌트·은행주)를 키 없이 받는다
+#  - 계산 결과 esri.json과 report.md를 europe-data 가지에 올린다 → 앱이 그 파일을 받아 쓴다
+# 자료를 못 받거나 계산이 실패하면 실행이 실패로 표시되고 GitHub가 저장소 주인에게 메일로 알린다.
+on:
+  schedule:
+    - cron: '40 22 * * *'      # 매일 07:40 KST (유럽 전날 장·ECB 전날 CISS 반영 뒤)
+    - cron: '40 9 * * 1-5'     # 평일 18:40 KST (ECB가 오후에 올리는 자료 반영)
+  workflow_dispatch:
+  push:
+    branches: [main, beta, esri-dev]
+    paths:
+      - 'tools/esri/**'
+      - '.github/workflows/europe-data.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: europe-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit check
+        run: node tools/esri/test.js
+      - name: Fetch data and compute ESRI v2
+        run: |
+          mkdir -p /tmp/pub
+          node tools/esri/esri.js --out /tmp/pub/esri.json --report /tmp/pub/report.md
+          cat /tmp/pub/report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish to europe-data branch (only when changed)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          if git fetch --depth=1 origin europe-data 2>/dev/null && git show FETCH_HEAD:esri.json > /tmp/old.json 2>/dev/null; then
+            if node -e "
+              const a=require('/tmp/old.json'), b=require('/tmp/pub/esri.json');
+              delete a.generatedAt; delete b.generatedAt; process.exit(JSON.stringify(a)===JSON.stringify(b)?0:1)"; then
+              echo "자료 변화 없음 — 올리지 않음"; exit 0
+            fi
+          fi
+          cd /tmp/pub
+          git init -q -b europe-data
+          git add -A
+          git -c user.name='europe-data bot' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm "유럽 국채 위험 자료 $(TZ=Asia/Seoul date +%F)"
+          git push -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" europe-data
+          echo "europe-data 가지에 올림"
