@@ -51,7 +51,7 @@ async function get(url, opts = {}, tries = 3) {
 // ECB: 시계열 하나 → [[기간, 값]]
 async function ecb(flow, key) {
   const t = await get(`https://data-api.ecb.europa.eu/service/data/${flow}/${key}?format=csvdata&detail=dataonly`);
-  const L = t.trim().split('\n'), h = L[0].split(','), iT = h.indexOf('TIME_PERIOD'), iV = h.indexOf('OBS_VALUE');
+  const L = t.replace(/\r/g, '').trim().split('\n'), h = L[0].split(','), iT = h.indexOf('TIME_PERIOD'), iV = h.indexOf('OBS_VALUE');
   return L.slice(1).map(l => l.replace(/\r/g, '').split(',')).filter(c => c[iV] !== '' && !isNaN(+c[iV])).map(c => [c[iT], +c[iV]]);
 }
 // Eurostat JSON-stat → {기간: 값}
