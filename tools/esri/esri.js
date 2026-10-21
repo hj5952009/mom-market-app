@@ -10,12 +10,12 @@
  *  - Yahoo Finance: VIX, MOVE, 미국 10년물 금리, 브렌트유, 나라별 대표 은행 주가(BNP·인테사·산탄데르·도이체방크)
  *
  * 구조 (월별, 나라별)
- *  ① 채권시장 스트레스 P1: 10년물 대독일 스프레드, 3개월 스프레드 변화, 나라별 CISS, 대표 은행주 12개월 낙폭
- *     → 4개 나라 과거 전체를 함께 놓은 순위(ECDF, 그 달까지 자료만)로 0~1
+ *  ① 채권시장 스트레스 P1: 10년물 대독일 스프레드(0~450bp 눈금, 무게 .45), 3개월 스프레드 확대(0~150bp, .20),
+ *     나라별 CISS(.20)·대표 은행주 12개월 낙폭(.15)은 4개 나라 과거 전체를 함께 놓은 순위(ECDF, 그 달까지 자료만)로 0~1
  *  ② 재정 취약성 F: 부채비율, 기초재정수지, 시장금리−임계금리(r*), 5년 뒤 부채비율 변화(차환 반영), 연간 총자금조달수요
  *     → 고정 기준(IMF·EU 기준선)으로 0~1. 연간 자료는 다음 해 4월(EDP 통보)부터 씀(앞을 보지 않게)
- *  ③ 글로벌 전이 P3: VIX, MOVE, 미국 10년물 3개월 변화, 브렌트 6개월 변화, 유로/달러 6개월 변동 → ECDF 0~1
- *  시장 스트레스 M = CISS식 합산 √((w∘s)ᵀC(w∘s)), s=[P1,P3], w=[0.6,0.4], C=P1·P3의 EWMA 상관(λ=0.9, 월)
+ *  ③ 글로벌 전이 P3: VIX, MOVE, 미국 10년물 3개월 변화, 브렌트 6개월 변화, 유로/달러 6개월 변동 → ECDF 0~1 (무게 .25)
+ *  시장 스트레스 M = CISS식 합산 √((w∘s)ᵀC(w∘s)), s=[P1,P3], w=[0.75,0.25], C=P1·P3의 EWMA 상관(λ=0.9, 월)
  *  원시 위험 R = M × (0.5 + F)       (재정이 약할수록 같은 시장 충격이 더 위험)
  *  ESRI_T100 = 100 × R / R_위기      R_위기 = 2011~12년 이탈리아·스페인 위기 정점 R의 평균 → 100 = 그 수준
  *  ESRI_M100 = 100 / (1 + e^(−0.048(T100 − 64)))   (제미나이 정의 그대로: T100=100 ↔ 85점)
@@ -131,7 +131,9 @@ function compute(raw) {
     if (!f || !isNum(f.d) || !isNum(f.nl)) return null;
     const pb = f.nl + (f.int || 0);                       // 기초재정수지 = 재정수지 + 이자지출 (% GDP)
     const reff = fp && isNum(fp.d) && isNum(f.int) && fp.d > 0 ? f.int / fp.d * 100 : null;  // 유효 이자율(%)
-    const g = f3 && isNum(f.gdp) && isNum(f3.gdp) ? (Math.pow(f.gdp / f3.gdp, 1 / 3) - 1) * 100 : null; // 3년 평균 명목성장률(%)
+    // 명목성장률: 10년 평균(물가가 크게 뛴 몇 해가 임계금리를 부풀리지 않게). 10년치가 없으면 있는 만큼
+    let gy = null; for (const k of [10, 8, 5, 3]) { const fb = F[use - k]; if (fb && isNum(fb.gdp) && isNum(f.gdp)) { gy = (Math.pow(f.gdp / fb.gdp, 1 / k) - 1) * 100; break; } }
+    const g = gy;
     return { year: use, d: f.d, nl: f.nl, int: f.int, pb, reff, g };
   }
   function vulnerability(c, m) {
@@ -161,13 +163,16 @@ function compute(raw) {
     };
   });
   const gE = { vix: new ExpandingECDF(36), move: new ExpandingECDF(36), tnx3: new ExpandingECDF(36), brent6: new ExpandingECDF(36), eur6: new ExpandingECDF(36) };
-  const pE = { spr: new ExpandingECDF(48), dspr: new ExpandingECDF(48), ciss: new ExpandingECDF(48), bank: new ExpandingECDF(48) };
+  // 스프레드는 경제적 의미가 있는 고정 눈금(0~450bp, 3개월 변화 0~150bp), CISS·은행주 낙폭은 과거 순위(ECDF)
+  const pE = { ciss: new ExpandingECDF(48), bank: new ExpandingECDF(48) };
+  const P1W = { spr: 0.45, dspr: 0.20, ciss: 0.20, bank: 0.15 };
+  const wmean = (parts, W) => { let s = 0, w = 0; Object.keys(W).forEach(k => { if (isNum(parts[k])) { s += W[k] * parts[k]; w += W[k]; } }); return w ? s / w : null; };
 
   const out = {}; C4.forEach(c => { out[c] = []; });
   const P3 = {};
   let cov = null; // P1·P3 EWMA (나라별)
   const ew = {}; C4.forEach(c => { ew[c] = { m1: null, m3: null, v1: null, v3: null, c13: null }; });
-  const LAM = 0.9;
+  const LAM = 0.9, W1 = 0.75, W3 = 0.25;   // 국채 고유 위험이 중심, 글로벌 요인은 제미나이 원안 비중(0.25)
 
   M.forEach(m => {
     // 이번 달 값을 먼저 기록에 넣고(그 달까지 자료) 순위 계산
@@ -179,14 +184,15 @@ function compute(raw) {
     const rowsM = {};
     C4.forEach(c => {
       const sp = spread(c, m), sp3 = spread(c, addM(m, -3));
-      const vals = { spr: c === 'DE' ? null : sp, dspr: c === 'DE' ? null : (isNum(sp) && isNum(sp3) ? sp - sp3 : null), ciss: raw.ciss[c][m], bank: raw.bankDD[c][m] };
+      // 독일은 기준 나라라 스프레드 0(국채 위험 프리미엄 없음)
+      const vals = { spr: c === 'DE' ? 0 : sp, dspr: c === 'DE' ? 0 : (isNum(sp) && isNum(sp3) ? sp - sp3 : null), ciss: raw.ciss[c][m], bank: raw.bankDD[c][m] };
       rowsM[c] = vals;
       Object.keys(pE).forEach(k => pE[k].add(vals[k]));
     });
     C4.forEach(c => {
-      const vals = rowsM[c], parts = {};
+      const vals = rowsM[c], parts = { spr: lin(vals.spr, 0, 450), dspr: lin(vals.dspr, 0, 150) };
       Object.keys(pE).forEach(k => { parts[k] = pE[k].rank(vals[k]); });
-      const S1 = mean(Object.values(parts)), S3 = P3[m].S, V = vulnerability(c, m);
+      const S1 = isNum(parts.spr) ? wmean(parts, P1W) : null, S3 = P3[m].S, V = vulnerability(c, m);
       let R = null, Mk = null, rho = null;
       if (isNum(S1) && isNum(S3)) {
         const e = ew[c];
@@ -197,7 +203,7 @@ function compute(raw) {
           e.c13 = LAM * e.c13 + (1 - LAM) * (S1 - e.m1) * (S3 - e.m3);
         }
         rho = Math.max(-1, Math.min(1, e.c13 / Math.sqrt(e.v1 * e.v3)));
-        const a = 0.6 * S1, b = 0.4 * S3;
+        const a = W1 * S1, b = W3 * S3;
         Mk = Math.sqrt(Math.max(0, a * a + b * b + 2 * rho * a * b));
         if (V) R = Mk * (0.5 + V.F);
       }
@@ -319,7 +325,7 @@ function buildJson(raw, R, errors) {
   return {
     v: 1, model: 'ESRI v2', generatedAt: new Date().toISOString(), asOf: raw.now, lastOfficialMonth: R.lastIrsM, nowMonth: R.nowM,
     calibration: { Rcrisis: r3(R.Rc), anchors: R.anchors.map(a => ({ c: a.c, from: a.from, to: a.to, R: r3(a.R) })), gamma: 0.048, theta: 64 },
-    weights: { P1: 0.6, P3: 0.4, F: 'R = M × (0.5 + F)' },
+    weights: { P1: 0.75, P3: 0.25, P1parts: { spr: 0.45, dspr: 0.20, ciss: 0.20, bank: 0.15 }, F: 'R = M × (0.5 + F)' },
     countries, episodes: R.episodes,
     global: {
       latest: { month: R.nowM, P3: r3(gl.S), parts: Object.fromEntries(Object.entries(gl.parts).map(([k, v]) => [k, r3(v)])), vals: Object.fromEntries(Object.entries(gl.vals).map(([k, v]) => [k, r2(v)])) },
