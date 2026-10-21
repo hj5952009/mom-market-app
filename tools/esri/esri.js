@@ -278,7 +278,7 @@ async function main() {
   });
   // 꼭 있어야 하는 자료가 빠지면 실패
   const need = C4.every(c => raw.irs[c] && raw.ciss[c] && raw.fiscal[c] && raw.bankDD[c]) && raw.glob.vix;
-  if (!need) { console.error('필수 자료 누락:\n' + errors.join('\n')); process.exit(1); }
+  if (!need) { console.error('필수 자료 누락:\n' + errors.join('\n')); ann('error', '필수 자료 누락: ' + errors.join(' | ')); process.exit(1); }
   C4.forEach(c => { if (!raw.sov[c]) raw.sov[c] = {}; });
 
   const R = compute(raw);
@@ -288,7 +288,8 @@ async function main() {
   const rep = report(json);
   if (reportPath) fs.writeFileSync(reportPath, rep);
   console.log(rep);
-  if (errors.length) console.log('경고:\n' + errors.join('\n'));
+  if (errors.length) { console.log('경고:\n' + errors.join('\n')); ann('warning', errors.join(' | ')); }
+  ann('notice', C4.map(c => c + ' ' + json.countries[c].latest.t100 + '(' + json.countries[c].latest.regime + ')').join(', ') + ' · Rc=' + json.calibration.Rcrisis + ' · ' + C4.map(c => c + ' ρ=' + json.countries[c].valid.rhoLevel).join(' '));
 }
 
 function regime(t) { return !isNum(t) ? null : t >= 100 ? '위기' : t >= 76 ? '고위험' : t >= 51 ? '주의' : '정상'; }
@@ -339,5 +340,6 @@ function report(j) {
   return L.join('\n') + '\n';
 }
 
-if (require.main === module) main().catch(e => { console.error(e); process.exit(2); });
+const ann = (lvl, msg) => { if (process.env.GITHUB_ACTIONS) console.log('::' + lvl + ' title=ESRI::' + String(msg).replace(/\r?\n/g, ' ⏎ ').replace(/%/g, '%25').slice(0, 3000)); };
+if (require.main === module) main().catch(e => { console.error(e); ann('error', (e && e.stack) || e); process.exit(2); });
 module.exports = { compute, buildJson, report, ExpandingECDF, lin, C4 };
