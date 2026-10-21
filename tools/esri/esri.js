@@ -276,8 +276,10 @@ async function main() {
     for (const [k, s] of [['vix', '^VIX'], ['move', '^MOVE'], ['tnx', '^TNX'], ['brent', 'BZ=F']]) raw.globDaily[k] = (await yahoo(s, '1y', '1d')).slice(-260);
     raw.globDaily.eur = eur.slice(-260);
   });
+  ann('notice', '자료 수: ' + C4.map(c => c + ' irs ' + Object.keys(raw.irs[c] || {}).length + ' ciss ' + Object.keys(raw.ciss[c] || {}).length + ' fis ' + Object.keys(raw.fiscal[c] || {}).length + ' bank ' + Object.keys(raw.bankDD[c] || {}).length + ' sov ' + Object.keys(raw.sov[c] || {}).length).join(' / ') + ' · vix ' + Object.keys(raw.glob.vix || {}).length + ' eur ' + Object.keys(raw.glob.eur || {}).length);
   // 꼭 있어야 하는 자료가 빠지면 실패
-  const need = C4.every(c => raw.irs[c] && raw.ciss[c] && raw.fiscal[c] && raw.bankDD[c]) && raw.glob.vix;
+  const has = o => o && Object.keys(o).length > 12;
+  const need = C4.every(c => has(raw.irs[c]) && has(raw.ciss[c]) && has(raw.fiscal[c]) && has(raw.bankDD[c])) && has(raw.glob.vix);
   if (!need) { console.error('필수 자료 누락:\n' + errors.join('\n')); ann('error', '필수 자료 누락: ' + errors.join(' | ')); process.exit(1); }
   C4.forEach(c => { if (!raw.sov[c]) raw.sov[c] = {}; });
 
